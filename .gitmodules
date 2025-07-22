@@ -1,0 +1,3 @@
+[submodule "Meshtastic-arduino"]
+	path = Meshtastic-arduino
+	url = https://github.com/meshtastic/Meshtastic-arduino.git
