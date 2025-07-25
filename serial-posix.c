@@ -40,15 +40,15 @@ int mt_serial_attach(struct mt_client *mtc, const char *device)
         goto done;
     }
 
-    mtc->fd = open(device, O_RDWR | O_NOCTTY);
+    mtc->fd = open(mtc->device, O_RDWR | O_NOCTTY);
     if (mtc->fd == -1) {
-        perror(device);
+        fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
         goto done;
     }
 
     ret = tcgetattr(mtc->fd, &tty);
     if (ret != 0) {
-        perror(device);
+        fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
         goto done;
     }
 
@@ -65,13 +65,13 @@ int mt_serial_attach(struct mt_client *mtc, const char *device)
 
     ret = tcflush(mtc->fd, TCIFLUSH);
     if (ret != 0) {
-        perror(device);
+        fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
         goto done;
     }
 
     ret = tcsetattr(mtc->fd, TCSANOW, &tty);
     if (ret != 0) {
-        perror(device);
+        fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
         goto done;
     }
 
@@ -154,7 +154,7 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
 
     ret = select(nfds, &rfds, NULL, NULL, &timeout);
     if (ret == -1) {
-        fprintf(stderr, "serial: select: %s!\n", strerror(errno));
+        fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
         goto done;
     } else if (ret == 0) {
         goto done;
@@ -192,11 +192,11 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
 
     ret = read(mtc->fd, mtc->inbuf + mtc->inbuf_len, should_read);
     if (ret == -1) {
-        fprintf(stderr, "serial: read: %s!\n", strerror(errno));
+        fprintf(stderr, "%s: %s!\n", mtc->device, strerror(errno));
         mtc->inbuf_len = 0;
         goto done;
     } else if (ret == 0) {
-        fprintf(stderr, "serial: EOF!\n");
+        fprintf(stderr, "%s: EOF!\n", mtc->device);
         mtc->inbuf_len = 0;
         goto done;
     }
@@ -245,7 +245,7 @@ int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
     while (size > 0) {
         ret = write(mtc->fd, packet, size);
         if (ret == -1) {
-            fprintf(stderr, "%s!", strerror(errno));
+            fprintf(stderr, "%s: %s!\n", mtc->device, strerror(errno));
             goto done;
         }
 

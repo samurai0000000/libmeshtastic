@@ -190,6 +190,8 @@ string MeshClient::lookupShortName(uint32_t id) const
     it = _nodeInfos.find(id);
     if (it != _nodeInfos.end()) {
         s = it->second.user.short_name;
+    } else {
+        s = std::to_string(id);
     }
 
     return s;
@@ -261,6 +263,9 @@ void MeshClient::mtEvent(struct mt_client *mtc,
         break;
     case meshtastic_FromRadio_deviceuiConfig_tag:
         client->gotDeviceUIConfig(fromRadio->deviceuiConfig);
+        break;
+    case meshtastic_FromRadio_mqttClientProxyMessage_tag:
+        client->gotMqttClientProxyMessage(fromRadio->mqttClientProxyMessage);
         break;
     default:
         cout << "Unhandled radio variant: "
@@ -650,6 +655,13 @@ void MeshClient::gotDeviceUIConfig(const meshtastic_DeviceUIConfig &deviceUIConf
     _deviceUIConfig = deviceUIConfig;
     if (_verbose) {
         cout << _deviceUIConfig;
+    }
+}
+
+void MeshClient::gotMqttClientProxyMessage(const meshtastic_MqttClientProxyMessage &m)
+{
+    if (_verbose) {
+        cout << m;
     }
 }
 

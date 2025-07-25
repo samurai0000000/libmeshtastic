@@ -91,6 +91,7 @@ protected:
     virtual void gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata);
     virtual void gotFileInfo(const meshtastic_FileInfo &fileInfo);
     virtual void gotDeviceUIConfig(const meshtastic_DeviceUIConfig &deviceUIConfig);
+    virtual void gotMqttClientProxyMessage(const meshtastic_MqttClientProxyMessage &m);
 
     virtual void gotTextMessage(const meshtastic_MeshPacket &packet,
                                 const string &message);

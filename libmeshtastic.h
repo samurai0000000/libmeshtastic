@@ -27,6 +27,7 @@ EXTERN_C_BEGIN
 
 #include <meshtastic/mesh.pb.h>
 #include <meshtastic/admin.pb.h>
+#include <meshtastic/mqtt.pb.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
 

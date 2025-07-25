@@ -1402,6 +1402,34 @@ ostream &operator<<(ostream &os, const meshtastic_DeviceUIConfig &u)
     return os;
 }
 
+ostream &operator<<(ostream &os, const meshtastic_MqttClientProxyMessage &m)
+{
+    INDENT << "MqttClientProxyMessage {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "topic: " << m.topic << endl;
+    switch (m.which_payload_variant) {
+    case meshtastic_MqttClientProxyMessage_data_tag:
+        INDENT << "data: ";
+        for (unsigned int i = 0; i < m.payload_variant.data.size; i++) {
+            os << hex << setfill('0') << setw(2)
+               << static_cast<unsigned int>(m.payload_variant.data.bytes[i]);
+        }
+        INDENT << dec << endl;
+        break;
+    case meshtastic_MqttClientProxyMessage_text_tag:
+        INDENT << "text: " << m.payload_variant.text << endl;
+        break;
+    default:
+        break;
+    }
+    INDENT << "retained: " << (int) m.retained << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+
+}
+
 /*
  * Local variables:
  * mode: C++

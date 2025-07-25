@@ -6,14 +6,10 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <assert.h>
 #include <libmeshtastic.h>
 
 int mt_recv_packet(struct mt_client *mtc, uint8_t *packet, size_t size)
@@ -81,8 +77,17 @@ static int mt_send_to_radio(struct mt_client *mtc,
     struct mt_pb_header *header = (struct mt_pb_header *) pb_buf;
     pb_ostream_t stream;
 
-    assert(mtc != NULL);
-    assert(to_radio != NULL);
+    if (mtc == NULL) {
+        errno = EINVAL;
+        ret = -1;
+        goto done;
+    }
+
+    if (to_radio == NULL) {
+        errno = EINVAL;
+        ret = -1;
+        goto done;
+    }
 
     stream = pb_ostream_from_buffer(pb_buf + sizeof(*header),
                                     sizeof(pb_buf) - sizeof(*header));

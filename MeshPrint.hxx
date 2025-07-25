@@ -60,6 +60,7 @@ extern ostream &operator<<(ostream &os, const meshtastic_QueueStatus &q);
 extern ostream &operator<<(ostream &os, const meshtastic_DeviceMetadata &m);
 extern ostream &operator<<(ostream &os, const meshtastic_FileInfo &i);
 extern ostream &operator<<(ostream &os, const meshtastic_DeviceUIConfig &u);
+extern ostream &operator<<(ostream &os, const meshtastic_MqttClientProxyMessage &m);
 
 #endif
 
