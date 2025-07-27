@@ -18,44 +18,45 @@ file(GLOB MESHTASTIC_PROTOS_SRCS "Meshtastic-arduino/src/meshtastic/*.c")
 include_directories(${CMAKE_CURRENT_LIST_DIR}/Meshtastic-arduino/src)
 
 set(ARDUINO_SRCS
-  Meshtastic-arduino/src/pb_common.c
-  Meshtastic-arduino/src/pb_encode.c
-  Meshtastic-arduino/src/pb_decode.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Meshtastic-arduino/src/pb_common.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Meshtastic-arduino/src/pb_encode.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Meshtastic-arduino/src/pb_decode.c
   ${MESHTASTIC_PROTOS_SRCS}
   )
 
 if (DEFINED PICO_PLATFORM)
   set(LIBMESHTASTIC_SRCS
-    Meshtastic-arduino/src/pb_common.c
-    Meshtastic-arduino/src/pb_encode.c
-    Meshtastic-arduino/src/pb_decode.c
-    protocol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/serial-pico.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/protocol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
     )
 else ()
   set(LIBMESHTASTIC_SRCS
-    Meshtastic-arduino/src/pb_common.c
-    Meshtastic-arduino/src/pb_encode.c
-    Meshtastic-arduino/src/pb_decode.c
-    serial-posix.c
-    protocol.c
-    MeshPrint.cxx
-    MeshClient.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/serial-posix.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/protocol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshPrint.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshClient.cxx
     )
 endif ()
 
-add_library(libmeshtastic ${LIBMESHTASTIC_SRCS} ${ARDUINO_SRCS})
-target_include_directories(libmeshtastic PUBLIC
+add_library(libmeshtastic INTERFACE)
+target_include_directories(libmeshtastic INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/Meshtastic-arduino/src
+  )
+target_sources(libmeshtastic INTERFACE
+  ${LIBMESHTASTIC_SRCS}
+  ${ARDUINO_SRCS}
   )
 
 if (NOT DEFINED PICO_PLATFORM)
   add_executable(mynodeid sample/mynodeid.c)
-  target_link_libraries(mynodeid PRIVATE libmeshtastic protobuf-c)
+  target_link_libraries(mynodeid PUBLIC libmeshtastic)
 
   add_executable(nodelisten sample/nodelisten.c)
-  target_link_libraries(nodelisten PRIVATE libmeshtastic protobuf-c)
+  target_link_libraries(nodelisten PUBLIC libmeshtastic)
 
   add_executable(nodereboot sample/nodereboot.c)
-  target_link_libraries(nodereboot PRIVATE libmeshtastic protobuf-c)
+  target_link_libraries(nodereboot PUBLIC libmeshtastic)
 endif ()

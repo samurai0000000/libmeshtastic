@@ -54,6 +54,11 @@ struct mt_client
     void *ctx;
 };
 
+#if defined(LIB_PICO_PLATFORM)
+extern void mt_serial_init(void);
+extern void mt_serial_write(unsigned int chan, const void *buf, size_t len);
+#endif
+
 extern int mt_serial_attach(struct mt_client *mtc, const char *device);
 extern int mt_serial_detach(struct mt_client *mtc);
 extern int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms);

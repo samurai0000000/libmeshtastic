@@ -184,14 +184,16 @@ string MeshClient::lookupShortName(uint32_t id) const
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
 
     if (id == 0xffffffffU) {
-        return "broadcast";
+        return "****";
     }
 
     it = _nodeInfos.find(id);
     if (it != _nodeInfos.end()) {
         s = it->second.user.short_name;
     } else {
-        s = std::to_string(id);
+        char buf[8];
+        snprintf(buf, sizeof(buf) - 1, "%.4x", (uint16_t) (id & 0xffffU));
+        s = buf;
     }
 
     return s;
@@ -243,7 +245,7 @@ void MeshClient::mtEvent(struct mt_client *mtc,
     case meshtastic_FromRadio_config_tag :
         client->gotConfig(fromRadio->config);
         break;
-    case  meshtastic_FromRadio_moduleConfig_tag:
+    case meshtastic_FromRadio_moduleConfig_tag:
         client->gotModuleConfig(fromRadio->moduleConfig);
         break;
     case meshtastic_FromRadio_channel_tag:
@@ -690,7 +692,6 @@ void MeshClient::gotUser(const meshtastic_MeshPacket &packet,
     } else {
         _nodeInfos[packet.from].user = user;
     }
-
 }
 
 void MeshClient::gotRouting(const meshtastic_MeshPacket &packet,

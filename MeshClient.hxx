@@ -9,8 +9,9 @@
 
 #include <string>
 #include <map>
-#include <thread>
 #include <mutex>
+#include <condition_variable>
+#include <thread>
 #include <memory>
 #include <libmeshtastic.h>
 

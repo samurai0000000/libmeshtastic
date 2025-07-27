@@ -4,10 +4,8 @@
  * Copyright (C) 2025, Charles Chiou
  */
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include <time.h>
 #include <libmeshtastic.h>
@@ -34,7 +32,6 @@ int mt_recv_packet(struct mt_client *mtc, uint8_t *packet, size_t size)
 
     if ((header->start1 != MT_PB_START1) ||
         (header->start2 != MT_PB_START2)) {
-        fprintf(stderr, "serial: wrong header!\n");
         errno = EINVAL;
         ret = -1;
         goto done;
@@ -42,8 +39,6 @@ int mt_recv_packet(struct mt_client *mtc, uint8_t *packet, size_t size)
 
     mt_pb_len = (header->h_len << 8) | header->l_len;
     if (size != (sizeof(*header) + mt_pb_len)) {
-        fprintf(stderr, "serial: wrong size %zu != %zu!",
-                size, (sizeof(*header) + mt_pb_len));
         errno = EINVAL;
         ret = -1;
         goto done;
