@@ -148,6 +148,9 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
     case meshtastic_FromRadio_config_complete_id_tag:
         sc->_isConnected = true;
         break;
+    case meshtastic_FromRadio_rebooted_tag:
+        sc->_isConnected = false;
+        break;
     default:
         break;
     }

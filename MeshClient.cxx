@@ -12,6 +12,7 @@
 #define DEFAULT_HEARTBEAT_SECONDS 30
 
 MeshClient::MeshClient()
+    : SimpleClient()
 {
     _verbose = false;
     _logStderr = false;
@@ -98,7 +99,7 @@ bool MeshClient::sendDisconnect(void)
     bool result = false;
 
     _mutex.lock();
-    result = (mt_send_disconnect(&_mtc) == 0);
+    result = SimpleClient::sendDisconnect();
     _mutex.unlock();
 
     return result;
@@ -109,7 +110,7 @@ bool MeshClient::sendWantConfig(void)
     bool result = false;
 
     _mutex.lock();
-    result = (mt_send_want_config(&_mtc) == 0);
+    result = SimpleClient::sendWantConfig();
     _mutex.unlock();
 
     return result;
@@ -120,7 +121,7 @@ bool MeshClient::sendHeartbeat(void)
     bool result = false;
 
     _mutex.lock();
-    result = (mt_send_heartbeat(&_mtc) == 0);
+    result = SimpleClient::sendHeartbeat();
     _mutex.unlock();
 
     return result;
@@ -132,14 +133,9 @@ bool MeshClient::textMessage(uint32_t dest, uint8_t channel,
 {
     bool result = false;
 
-    if (hop_start == 0) {
-        hop_start = _loraConfig.hop_limit;
-    }
-
     _mutex.lock();
-    result = (mt_text_message(&_mtc, dest, channel,
-                              message.c_str(),
-                              hop_start, want_ack) == 0);
+    result = SimpleClient::textMessage(dest, channel, message,
+                                       hop_start, want_ack);
     _mutex.unlock();
 
     return result;
@@ -154,74 +150,6 @@ bool MeshClient::adminMessageReboot(unsigned int seconds)
     _mutex.unlock();
 
     return result;
-}
-
-uint32_t MeshClient::whoami(void) const
-{
-    return _myNodeInfo.my_node_num;
-}
-
-string MeshClient::lookupLongName(uint32_t id) const
-{
-    string s;
-    map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
-
-    if (id == 0xffffffffU) {
-        return "broadcast";
-    }
-
-    it = _nodeInfos.find(id);
-    if (it != _nodeInfos.end()) {
-        s = it->second.user.long_name;
-    }
-
-    return s;
-}
-
-string MeshClient::lookupShortName(uint32_t id) const
-{
-    string s;
-    map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
-
-    if (id == 0xffffffffU) {
-        return "****";
-    }
-
-    it = _nodeInfos.find(id);
-    if (it != _nodeInfos.end()) {
-        s = it->second.user.short_name;
-    } else {
-        char buf[8];
-        snprintf(buf, sizeof(buf) - 1, "%.4x", (uint16_t) (id & 0xffffU));
-        s = buf;
-    }
-
-    return s;
-}
-
-string MeshClient::getDisplayName(uint32_t id) const
-{
-    stringstream ss;
-
-    ss << lookupShortName(id) << " (!" << hex << setfill('0') << setw(8)
-       << id << ")";
-
-    return ss.str();
-}
-
-string MeshClient::getChannelName(uint8_t channel) const
-{
-    string name;
-    map<uint8_t, meshtastic_Channel>::const_iterator it;
-
-    it = _channels.find(channel);
-    if (it != _channels.end()) {
-        if (it->second.has_settings) {
-            name = it->second.settings.name;
-        }
-    }
-
-    return name;
 }
 
 void MeshClient::mtEvent(struct mt_client *mtc,
@@ -253,6 +181,9 @@ void MeshClient::mtEvent(struct mt_client *mtc,
         break;
     case meshtastic_FromRadio_config_complete_id_tag:
         client->gotConfigCompleteId(fromRadio->config_complete_id);
+        break;
+    case meshtastic_FromRadio_rebooted_tag:
+        client->gotRebooted(fromRadio->rebooted);
         break;
     case meshtastic_FromRadio_queueStatus_tag:
         client->gotQueueStatus(fromRadio->queueStatus);
@@ -619,9 +550,18 @@ void MeshClient::gotChannel(const meshtastic_Channel &channel)
 
 void MeshClient::gotConfigCompleteId(uint32_t id)
 {
+    _isConnected = true;
     if (_verbose) {
         cout << "ConfigCompleteId: 0x"
              << hex << setfill('0') << setw(8) << id << dec << endl;
+    }
+}
+
+void MeshClient::gotRebooted(bool rebooted)
+{
+    _isConnected = false;
+    if (_verbose) {
+        cout << "Rebooted: %d\n" << (int) rebooted << endl;
     }
 }
 
@@ -667,119 +607,6 @@ void MeshClient::gotMqttClientProxyMessage(const meshtastic_MqttClientProxyMessa
     }
 }
 
-void MeshClient::gotTextMessage(const meshtastic_MeshPacket &packet,
-                                const string &message)
-{
-    (void)(packet);
-    (void)(message);
-}
-
-void MeshClient::gotPosition(const meshtastic_MeshPacket &packet,
-                             const meshtastic_Position &position)
-{
-    _positions[packet.from] = position;
-}
-
-void MeshClient::gotUser(const meshtastic_MeshPacket &packet,
-                         const meshtastic_User &user)
-{
-    if (_nodeInfos.find(packet.from) == _nodeInfos.end()) {
-        meshtastic_NodeInfo nodeInfo;
-
-        bzero(&nodeInfo, sizeof(nodeInfo));
-        nodeInfo.user = user;
-        _nodeInfos[packet.from] = nodeInfo;
-    } else {
-        _nodeInfos[packet.from].user = user;
-    }
-}
-
-void MeshClient::gotRouting(const meshtastic_MeshPacket &packet,
-                            const meshtastic_Routing &routing)
-{
-    (void)(packet);
-    (void)(routing);
-}
-
-void MeshClient::gotTelemetry(const meshtastic_MeshPacket &packet,
-                              const meshtastic_Telemetry &telemetry)
-{
-    switch (telemetry.which_variant) {
-    case meshtastic_Telemetry_device_metrics_tag:
-        gotDeviceMetrics(packet, telemetry.variant.device_metrics);
-        break;
-    case meshtastic_Telemetry_environment_metrics_tag:
-        gotEnvironmentMetrics(packet, telemetry.variant.environment_metrics);
-        break;
-    case meshtastic_Telemetry_air_quality_metrics_tag:
-        gotAirQualityMetrics(packet, telemetry.variant.air_quality_metrics);
-        break;
-    case meshtastic_Telemetry_power_metrics_tag:
-        gotPowerMetrics(packet, telemetry.variant.power_metrics);
-        break;
-    case meshtastic_Telemetry_local_stats_tag:
-        gotLocalStats(packet, telemetry.variant.local_stats);
-        break;
-    case meshtastic_Telemetry_health_metrics_tag:
-        gotHealthMetrics(packet, telemetry.variant.health_metrics);
-        break;
-    case meshtastic_Telemetry_host_metrics_tag:
-        gotHostMetrics(packet, telemetry.variant.host_metrics);
-        break;
-    default:
-        break;
-    }
-}
-
-void MeshClient::gotDeviceMetrics(const meshtastic_MeshPacket &packet,
-                                  const meshtastic_DeviceMetrics &metrics)
-{
-    _deviceMetrics[packet.from] = metrics;
-}
-
-void MeshClient::gotEnvironmentMetrics(const meshtastic_MeshPacket &packet,
-                                       const meshtastic_EnvironmentMetrics &metrics)
-{
-    _environmentMetrics[packet.from] = metrics;
-}
-
-void MeshClient::gotAirQualityMetrics(const meshtastic_MeshPacket &packet,
-                                      const meshtastic_AirQualityMetrics &metrics)
-{
-    _airQualityMetrics[packet.from] = metrics;
-}
-
-void MeshClient::gotPowerMetrics(const meshtastic_MeshPacket &packet,
-                                 const meshtastic_PowerMetrics &metrics)
-{
-    _powerMetrics[packet.from] = metrics;
-}
-
-void MeshClient::gotLocalStats(const meshtastic_MeshPacket &packet,
-                               const meshtastic_LocalStats &stats)
-{
-    _localStats[packet.from] = stats;
-}
-
-void MeshClient::gotHealthMetrics(const meshtastic_MeshPacket &packet,
-                                  const meshtastic_HealthMetrics &metrics)
-{
-    _healthMetrics[packet.from] = metrics;
-}
-
-void MeshClient::gotHostMetrics(const meshtastic_MeshPacket &packet,
-                                const meshtastic_HostMetrics &metrics)
-{
-    _hostMetrics[packet.from] = metrics;
-}
-
-void MeshClient::gotTraceRoute(const meshtastic_MeshPacket &packet,
-                               const meshtastic_RouteDiscovery &routeDiscovery)
-{
-    (void)(packet);
-    (void)(routeDiscovery);
-}
-
 void MeshClient::stop(void)
 {
     _isRunning = false;
@@ -794,33 +621,44 @@ void MeshClient::run(void)
 {
     int ret = 0;
     uint32_t timeout_ms = 1000;
-    time_t last, now;
+    time_t last, last_want_config, now;
 
     last = now = time(NULL);
-
-    if (sendWantConfig() != true) {
-        goto done;
-    }
+    last_want_config = 0;
 
     while (_isRunning) {
+        now = time(NULL);
+        if (!isConnected() && ((now - last_want_config) >= 5)) {
+            ret = sendWantConfig();
+            if (ret != true) {
+                _isRunning = false;
+                continue;
+            }
+
+            last_want_config = time(NULL);
+        }
+
         ret = mt_serial_process(&_mtc, timeout_ms);
         if (ret != 0) {
             _isRunning = false;
             continue;
         }
 
+        if (!isConnected()) {
+            continue;
+        }
+
+        now = time(NULL);
         if (_heartbeatSeconds > 0) {
-            now = time(NULL);
             if ((now - last) >= (time_t) _heartbeatSeconds) {
                 if (sendHeartbeat() != true) {
-                    goto done;
+                    _isRunning = false;
+                    break;
                 }
                 last = now;
             }
         }
     }
-
-done:
 
     sendDisconnect();
     mt_serial_detach(&_mtc);

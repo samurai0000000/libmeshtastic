@@ -14,10 +14,11 @@
 #include <thread>
 #include <memory>
 #include <libmeshtastic.h>
+#include <SimpleClient.hxx>
 
 using namespace std;
 
-class MeshClient {
+class MeshClient : public SimpleClient {
 
 public:
 
@@ -46,11 +47,25 @@ public:
 
     bool adminMessageReboot(unsigned int seconds = 0);
 
-    uint32_t whoami(void) const;
-    string lookupLongName(uint32_t id) const;
-    string lookupShortName(uint32_t id) const;
-    string getDisplayName(uint32_t id) const;
-    string getChannelName(uint8_t channel) const;
+    inline uint32_t whoami(void) const {
+        return SimpleClient::whoami();
+    }
+
+    inline string lookupLongName(uint32_t id) const {
+        return SimpleClient::lookupLongName(id);
+    }
+
+    inline string lookupShortName(uint32_t id) const {
+        return SimpleClient::lookupShortName(id);
+    }
+
+    inline string getDisplayName(uint32_t id) const {
+        return SimpleClient::getDisplayName(id);
+    }
+
+    inline string getChannelName(uint8_t channel) const {
+        return SimpleClient::getChannelName(channel);
+    }
 
 protected:
 
@@ -88,52 +103,97 @@ protected:
     virtual void gotModuleConfigPaxcounter(const meshtastic_ModuleConfig_PaxcounterConfig &c);
     virtual void gotChannel(const meshtastic_Channel &channel);
     virtual void gotConfigCompleteId(uint32_t id);
+    virtual void gotRebooted(bool rebooted);
     virtual void gotQueueStatus(const meshtastic_QueueStatus &queueStatus);
     virtual void gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata);
     virtual void gotFileInfo(const meshtastic_FileInfo &fileInfo);
     virtual void gotDeviceUIConfig(const meshtastic_DeviceUIConfig &deviceUIConfig);
     virtual void gotMqttClientProxyMessage(const meshtastic_MqttClientProxyMessage &m);
 
-    virtual void gotTextMessage(const meshtastic_MeshPacket &packet,
-                                const string &message);
-    virtual void gotPosition(const meshtastic_MeshPacket &packet,
-                             const meshtastic_Position &position);
-    virtual void gotUser(const meshtastic_MeshPacket &packet,
-                         const meshtastic_User &user);
-    virtual void gotRouting(const meshtastic_MeshPacket &packet,
-                            const meshtastic_Routing &routing);
-    virtual void gotTelemetry(const meshtastic_MeshPacket &packet,
-                              const meshtastic_Telemetry &telemetry);
-    virtual void gotDeviceMetrics(const meshtastic_MeshPacket &packet,
-                                  const meshtastic_DeviceMetrics &metrics);
-    virtual void gotEnvironmentMetrics(const meshtastic_MeshPacket &packet,
-                                       const meshtastic_EnvironmentMetrics &metrics);
-    virtual void gotAirQualityMetrics(const meshtastic_MeshPacket &packet,
-                                      const meshtastic_AirQualityMetrics &metrics);
-    virtual void gotPowerMetrics(const meshtastic_MeshPacket &packet,
-                                       const meshtastic_PowerMetrics &metrics);
-    virtual void gotLocalStats(const meshtastic_MeshPacket &packet,
-                               const meshtastic_LocalStats &stats);
-    virtual void gotHealthMetrics(const meshtastic_MeshPacket &packet,
-                                  const meshtastic_HealthMetrics &metrics);
-    virtual void gotHostMetrics(const meshtastic_MeshPacket &packet,
-                                const meshtastic_HostMetrics &metrics);
-    virtual void gotTraceRoute(const meshtastic_MeshPacket &packet,
-                               const meshtastic_RouteDiscovery &routeDiscovery);
+    inline virtual void gotTextMessage(const meshtastic_MeshPacket &packet,
+                                       const string &message) {
+        SimpleClient::gotTextMessage(packet, message);
+    }
 
-    meshtastic_MyNodeInfo _myNodeInfo;
-    map<uint32_t, meshtastic_NodeInfo> _nodeInfos;
+    inline virtual void gotPosition(const meshtastic_MeshPacket &packet,
+                                    const meshtastic_Position &position) {
+        SimpleClient::gotPosition(packet, position);
+    }
+
+    inline virtual void gotUser(const meshtastic_MeshPacket &packet,
+                                const meshtastic_User &user) {
+        SimpleClient::gotUser(packet, user);
+    }
+
+    inline void gotRouting(const meshtastic_MeshPacket &packet,
+                           const meshtastic_Routing &routing) {
+        SimpleClient::gotRouting(packet, routing);
+    }
+
+    inline virtual void gotTelemetry(const meshtastic_MeshPacket &packet,
+                                     const meshtastic_Telemetry &telemetry) {
+        SimpleClient::gotTelemetry(packet, telemetry);
+    }
+
+    inline virtual void gotDeviceMetrics(
+        const meshtastic_MeshPacket &packet,
+        const meshtastic_DeviceMetrics &metrics) {
+        SimpleClient::gotDeviceMetrics(packet, metrics);
+}
+
+    inline virtual void gotEnvironmentMetrics(
+        const meshtastic_MeshPacket &packet,
+        const meshtastic_EnvironmentMetrics &metrics) {
+        SimpleClient::gotEnvironmentMetrics(packet, metrics);
+    }
+
+    inline virtual void gotAirQualityMetrics(
+        const meshtastic_MeshPacket &packet,
+        const meshtastic_AirQualityMetrics &metrics) {
+        SimpleClient::gotAirQualityMetrics(packet, metrics);
+    }
+
+    inline virtual void gotPowerMetrics(
+        const meshtastic_MeshPacket &packet,
+        const meshtastic_PowerMetrics &metrics) {
+        SimpleClient::gotPowerMetrics(packet, metrics);
+    }
+
+    inline virtual void gotLocalStats(const meshtastic_MeshPacket &packet,
+                                      const meshtastic_LocalStats &stats) {
+        SimpleClient::gotLocalStats(packet, stats);
+    }
+
+    inline virtual void gotHealthMetrics(
+        const meshtastic_MeshPacket &packet,
+        const meshtastic_HealthMetrics &metrics) {
+        SimpleClient::gotHealthMetrics(packet, metrics);
+    }
+
+    inline virtual void gotHostMetrics(const meshtastic_MeshPacket &packet,
+                                       const meshtastic_HostMetrics &metrics) {
+        SimpleClient::gotHostMetrics(packet, metrics);
+    }
+
+    inline virtual void gotTraceRoute(
+        const meshtastic_MeshPacket &packet,
+        const meshtastic_RouteDiscovery &routeDiscovery) {
+        SimpleClient::gotTraceRoute(packet, routeDiscovery);
+    }
+
+    //meshtastic_MyNodeInfo _myNodeInfo;
+    //map<uint32_t, meshtastic_NodeInfo> _nodeInfos;
     meshtastic_Config_DeviceConfig _deviceConfig;
     meshtastic_Config_PositionConfig _positionConfig;
     meshtastic_Config_PowerConfig _powerConfig;
     meshtastic_Config_NetworkConfig _networkConfig;
     meshtastic_Config_DisplayConfig _displayConfig;
-    meshtastic_Config_LoRaConfig _loraConfig;
+    //meshtastic_Config_LoRaConfig _loraConfig;
     meshtastic_Config_BluetoothConfig _bluetoothConfig;
     meshtastic_Config_SecurityConfig _securityConfig;
     meshtastic_Config_SessionkeyConfig _sessionkeyConfig;
     //meshtastic_DeviceUIConfig _deviceUIConfig;
-    map<uint8_t, meshtastic_Channel> _channels;
+    //map<uint8_t, meshtastic_Channel> _channels;
     meshtastic_QueueStatus _queueStatus;
     meshtastic_DeviceMetadata _deviceMetadata;
     meshtastic_DeviceUIConfig _deviceUIConfig;
@@ -152,14 +212,14 @@ protected:
     meshtastic_ModuleConfig_DetectionSensorConfig _modDetectionSensor;
     meshtastic_ModuleConfig_PaxcounterConfig _modPaxcounter;
 
-    map<uint32_t, meshtastic_Position> _positions;
-    map<uint32_t, meshtastic_DeviceMetrics> _deviceMetrics;
-    map<uint32_t, meshtastic_EnvironmentMetrics> _environmentMetrics;
-    map<uint32_t, meshtastic_AirQualityMetrics> _airQualityMetrics;
-    map<uint32_t, meshtastic_PowerMetrics> _powerMetrics;
-    map<uint32_t, meshtastic_LocalStats> _localStats;
-    map<uint32_t, meshtastic_HealthMetrics> _healthMetrics;
-    map<uint32_t, meshtastic_HostMetrics> _hostMetrics;
+    //map<uint32_t, meshtastic_Position> _positions;
+    //map<uint32_t, meshtastic_DeviceMetrics> _deviceMetrics;
+    //map<uint32_t, meshtastic_EnvironmentMetrics> _environmentMetrics;
+    //map<uint32_t, meshtastic_AirQualityMetrics> _airQualityMetrics;
+    //map<uint32_t, meshtastic_PowerMetrics> _powerMetrics;
+    //map<uint32_t, meshtastic_LocalStats> _localStats;
+    //map<uint32_t, meshtastic_HealthMetrics> _healthMetrics;
+    //map<uint32_t, meshtastic_HostMetrics> _hostMetrics;
 
 private:
 
@@ -173,7 +233,6 @@ private:
     bool _logStderr;
     unsigned int _heartbeatSeconds;
 
-    struct mt_client _mtc;
     shared_ptr<thread> _thread;
     mutex _mutex;
     bool _isRunning;
