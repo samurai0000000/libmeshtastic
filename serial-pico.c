@@ -49,7 +49,6 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
     const struct mt_pb_header *mt_pb_header;
     uint16_t mt_pb_len;
     size_t should_read = 0;
-    size_t got = 0;
 
     (void)(timeout_ms);
 
@@ -89,15 +88,9 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
         should_read = 1;
     }
 
-    for (got = 0; (got < should_read) && (serial_rx_ready(device_chan) > 0);
-         got++) {
-        ret = serial_read(device_chan, mtc->inbuf + mtc->inbuf_len + got, 1);
-        if (ret != 1) {
-            break;
-        }
-    }
+    ret = serial_read(uart1, mtc->inbuf + mtc->inbuf_len, should_read);
 
-    mtc->inbuf_len += got;
+    mtc->inbuf_len += ret;
     mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;
 
     if ((mt_pb_header->start1 == MT_PB_START1) &&
@@ -125,9 +118,9 @@ int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
     (void)(mtc);
 
     while (size > 0) {
-        ret = serial_write(device_chan, packet, size);
+        ret = serial_write(uart1, packet, size);
         if (ret == -1) {
-            serial_printf(console_chan, "%s: write() returned %d!\n", ret);
+            serial_printf(uart0, "%s: write() returned %d!\n", ret);
             goto done;
         }
 

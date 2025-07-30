@@ -248,7 +248,7 @@ void MeshClient::gotPacket(const meshtastic_MeshPacket &packet)
                 cerr << "pb_decode position failed!" << endl;
             }
         }
-            break;
+        break;
         case meshtastic_PortNum_NODEINFO_APP:
         {
             meshtastic_User user;
@@ -262,7 +262,7 @@ void MeshClient::gotPacket(const meshtastic_MeshPacket &packet)
                 cerr << "pb_decode user failed!" << endl;
             }
         }
-            break;
+        break;
         case meshtastic_PortNum_ROUTING_APP:
         {
             meshtastic_Routing routing;
@@ -276,7 +276,20 @@ void MeshClient::gotPacket(const meshtastic_MeshPacket &packet)
                 cerr << "pb_decode routing failed!" << endl;
             }
         }
-            break;
+        break;
+        case meshtastic_PortNum_ADMIN_APP:
+        {
+            meshtastic_AdminMessage admmsg;
+            stream = pb_istream_from_buffer(packet.decoded.payload.bytes,
+                                            packet.decoded.payload.size);
+            ret = pb_decode(&stream, meshtastic_AdminMessage_fields, &admmsg);
+            if (ret == 1) {
+                gotAdminMessage(packet, admmsg);
+            } else {
+                cerr << "pb_decode admmsg failed!" << endl;
+            }
+        }
+        break;
         case meshtastic_PortNum_TELEMETRY_APP:
         {
             meshtastic_Telemetry telemetry;
@@ -290,7 +303,7 @@ void MeshClient::gotPacket(const meshtastic_MeshPacket &packet)
                 cerr << "pb_decode telmetry failed!" << endl;
             }
         }
-            break;
+        break;
         case meshtastic_PortNum_TRACEROUTE_APP:
         {
             meshtastic_RouteDiscovery routeDiscovery;
@@ -305,7 +318,7 @@ void MeshClient::gotPacket(const meshtastic_MeshPacket &packet)
                 cerr << "pb_decode routeDiscovery failed!" << endl;
             }
         }
-            break;
+        break;
         default:
             cout << "Unhandled portnum: "
                  << packet.decoded.portnum << endl;
@@ -625,6 +638,8 @@ void MeshClient::run(void)
 
     last = now = time(NULL);
     last_want_config = 0;
+
+    sendDisconnect();
 
     while (_isRunning) {
         now = time(NULL);

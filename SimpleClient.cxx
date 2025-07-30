@@ -99,6 +99,39 @@ string SimpleClient::getChannelName(uint8_t channel) const
     if (it != _channels.end()) {
         if (it->second.has_settings) {
             name = it->second.settings.name;
+            if (name.empty()) {
+                switch (_loraConfig.modem_preset) {
+                case meshtastic_Config_LoRaConfig_ModemPreset_LONG_FAST:
+                    name = "LongFast";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_LONG_SLOW :
+                    name = "LongSlow";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_VERY_LONG_SLOW:
+                    name = "VeryLongSlow";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_MEDIUM_SLOW:
+                    name = "MediumSlow";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_MEDIUM_FAST:
+                    name = "MediumFast";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_SHORT_SLOW:
+                    name = "ShortSlow";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_SHORT_FAST:
+                    name = "ShortFast";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_LONG_MODERATE:
+                    name = "LongModerate";
+                    break;
+                case meshtastic_Config_LoRaConfig_ModemPreset_SHORT_TURBO:
+                    name = "ShortTurbo";
+                    break;
+                default:
+                    break;
+                }
+            }
         }
     }
 
@@ -118,6 +151,26 @@ uint8_t SimpleClient::getChannel(const string &name) const
     }
 
     return channel;
+}
+
+bool SimpleClient::isChannelValid(uint8_t channel) const
+{
+    map<uint8_t, meshtastic_Channel>::const_iterator it;
+
+    it = _channels.find(channel);
+    if (it == _channels.end()) {
+        return false;
+    }
+
+    if (it->second.has_settings == false) {
+        return false;
+    }
+
+    if (it->second.role == meshtastic_Channel_Role_DISABLED) {
+        return false;
+    }
+
+    return true;
 }
 
 void SimpleClient::mtEvent(struct mt_client *mtc,
@@ -350,6 +403,13 @@ void SimpleClient::gotRouting(const meshtastic_MeshPacket &packet,
 {
     (void)(packet);
     (void)(routing);
+}
+
+void SimpleClient::gotAdminMessage(const meshtastic_MeshPacket &packet,
+                                   const meshtastic_AdminMessage &adminMessage)
+{
+    (void)(packet);
+    (void)(adminMessage);
 }
 
 void SimpleClient::gotTelemetry(const meshtastic_MeshPacket &packet,

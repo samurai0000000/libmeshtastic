@@ -715,6 +715,407 @@ ostream &operator<<(ostream &os, const meshtastic_Routing &r)
     return os;
 }
 
+ostream &operator<<(ostream &os, const meshtastic_AdminMessage &m)
+{
+    INDENT << "admin_message: {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "which_payload_variant: " << m.which_payload_variant << endl;
+    switch (m.which_payload_variant) {
+    case meshtastic_AdminMessage_get_channel_request_tag:
+        INDENT << "get_channel_request: " << m.get_channel_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_channel_response_tag:
+        INDENT << "get_channel_response: " << endl;
+        adjust_indent(os, 2);
+        INDENT << m.get_channel_response;
+        adjust_indent(os, -2);
+        break;
+    case meshtastic_AdminMessage_get_owner_request_tag:
+        INDENT << "get_owner_request: " << (int) m.get_owner_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_owner_response_tag:
+        INDENT << "get_owner_response: " << endl;
+        adjust_indent(os, 2);
+        INDENT << m.get_owner_response;
+        adjust_indent(os, -2);
+        break;
+    case meshtastic_AdminMessage_get_config_request_tag:
+        INDENT << "get_config_request: " << m.get_config_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_config_response_tag:
+        INDENT << "get_config_response: " << endl;
+        adjust_indent(os, 2);
+        INDENT << m.get_config_response;
+        adjust_indent(os, -2);
+        break;
+    case meshtastic_AdminMessage_get_module_config_request_tag:
+        INDENT << "get_module_config_request: " << m.get_module_config_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_module_config_response_tag:
+        INDENT << "get_module_config_response: " << endl;
+        adjust_indent(os, 2);
+        INDENT << m.get_module_config_response;
+        adjust_indent(os, -2);
+        break;
+    case meshtastic_AdminMessage_get_canned_message_module_messages_request_tag:
+        INDENT << "get_canned_message_module_messages_request: "
+               << (int) m.get_canned_message_module_messages_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_canned_message_module_messages_response_tag:
+        INDENT << "get_canned_message_module_messages_response: "
+               << m.get_canned_message_module_messages_response << endl;
+        break;
+    case meshtastic_AdminMessage_get_device_metadata_request_tag:
+        INDENT << "get_device_metadata_request: "
+               << (int) m.get_device_metadata_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_device_metadata_response_tag:
+        INDENT << "get_device_metadata_response: " << endl;
+        adjust_indent(os, 2);
+        os << m.get_device_metadata_response;
+        adjust_indent(os, -2);
+        break;
+    case meshtastic_AdminMessage_get_ringtone_request_tag:
+        INDENT << "get_ringtone_request: "
+               << (int) m.get_ringtone_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_ringtone_response_tag:
+        INDENT << "get_ringtone_response: "
+               << m.get_ringtone_response << endl;
+        break;
+    case meshtastic_AdminMessage_get_device_connection_status_request_tag:
+        INDENT << "get_device_connection_status_request: "
+               << (int) m.get_device_connection_status_request << endl;
+        break;
+    case meshtastic_AdminMessage_get_device_connection_status_response_tag:
+        INDENT << "get_device_connection_status_response: " << endl;
+        adjust_indent(os, 2);
+        os << m.get_device_connection_status_response;
+        adjust_indent(os, -2);
+        break;
+    case meshtastic_AdminMessage_set_ham_mode_tag:
+        os << m.set_ham_mode << endl;
+        break;
+    case meshtastic_AdminMessage_get_node_remote_hardware_pins_request_tag:
+        INDENT << "get_node_remote_hardware_pins_request: "
+               << (int) m.get_node_remote_hardware_pins_request;
+        break;
+    case meshtastic_AdminMessage_get_node_remote_hardware_pins_response_tag:
+        os << m.get_node_remote_hardware_pins_request;
+        break;
+    case meshtastic_AdminMessage_enter_dfu_mode_request_tag:
+    case meshtastic_AdminMessage_delete_file_request_tag:
+    case meshtastic_AdminMessage_set_scale_tag:
+    case meshtastic_AdminMessage_backup_preferences_tag:
+    case meshtastic_AdminMessage_restore_preferences_tag:
+    case meshtastic_AdminMessage_remove_backup_preferences_tag:
+    case meshtastic_AdminMessage_set_owner_tag:
+    case meshtastic_AdminMessage_set_channel_tag:
+    case meshtastic_AdminMessage_set_config_tag:
+    case meshtastic_AdminMessage_set_module_config_tag:
+    case meshtastic_AdminMessage_set_canned_message_module_messages_tag:
+    case meshtastic_AdminMessage_set_ringtone_message_tag:
+    case meshtastic_AdminMessage_remove_by_nodenum_tag:
+    case meshtastic_AdminMessage_set_favorite_node_tag:
+    case meshtastic_AdminMessage_remove_favorite_node_tag:
+    case meshtastic_AdminMessage_set_fixed_position_tag:
+    case meshtastic_AdminMessage_remove_fixed_position_tag:
+    case meshtastic_AdminMessage_set_time_only_tag:
+    case meshtastic_AdminMessage_get_ui_config_request_tag:
+    case meshtastic_AdminMessage_get_ui_config_response_tag:
+    case meshtastic_AdminMessage_store_ui_config_tag:
+    case meshtastic_AdminMessage_set_ignored_node_tag:
+    case meshtastic_AdminMessage_remove_ignored_node_tag:
+    case meshtastic_AdminMessage_begin_edit_settings_tag:
+    case meshtastic_AdminMessage_commit_edit_settings_tag:
+    case meshtastic_AdminMessage_add_contact_tag:
+    case meshtastic_AdminMessage_factory_reset_device_tag:
+    case meshtastic_AdminMessage_reboot_ota_seconds_tag:
+    case meshtastic_AdminMessage_exit_simulator_tag:
+    case meshtastic_AdminMessage_reboot_seconds_tag:
+    case meshtastic_AdminMessage_shutdown_seconds_tag:
+    case meshtastic_AdminMessage_factory_reset_config_tag:
+    case meshtastic_AdminMessage_nodedb_reset_tag:
+        break;
+    case meshtastic_AdminMessage_session_passkey_tag:
+        os << "session_passkey" << endl;
+        break;
+    default:
+        break;
+    }
+    INDENT << "session_passkey: ";
+    for (size_t i = 0; i < m.session_passkey.size; i++) {
+        if (i > 0) {
+            os << ":";
+        }
+        os << hex << setfill('0') << setw(2)
+           << static_cast<unsigned int>(m.session_passkey.bytes[i]);
+    }
+    os << dec << endl;
+
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+extern ostream &operator<<(ostream &os, const meshtastic_AdminMessage_ConfigType &t)
+{
+    switch (t) {
+    case meshtastic_AdminMessage_ConfigType_DEVICE_CONFIG:
+        os << "device_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_POSITION_CONFIG:
+        os << "position_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_POWER_CONFIG:
+        os << "power_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_NETWORK_CONFIG:
+        os << "network_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_DISPLAY_CONFIG:
+        os << "display_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_LORA_CONFIG:
+        os << "lora_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_BLUETOOTH_CONFIG:
+        os << "bluetooth_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_SECURITY_CONFIG :
+        os << "security_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_SESSIONKEY_CONFIG:
+        os << "sessionkey_config" << endl;
+        break;
+    case meshtastic_AdminMessage_ConfigType_DEVICEUI_CONFIG:
+        os << "deviceui_config" << endl;
+        break;
+    default:
+        break;
+    }
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_AdminMessage_ModuleConfigType &t)
+{
+    switch (t) {
+    case meshtastic_AdminMessage_ModuleConfigType_MQTT_CONFIG:
+        os << "module_config_mqtt" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_SERIAL_CONFIG:
+        os << "module_config_serial" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_EXTNOTIF_CONFIG:
+        os << "module_config_extnotif" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_STOREFORWARD_CONFIG:
+        os << "module_config_storeforward" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_RANGETEST_CONFIG:
+        os << "module_config_rangetest" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_TELEMETRY_CONFIG:
+        os << "module_config_telemetry" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_CANNEDMSG_CONFIG:
+        os << "module_config_cannedmsg" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_AUDIO_CONFIG:
+        os << "module_config_audio" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_REMOTEHARDWARE_CONFIG:
+        os << "module_config_remotehardware" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_NEIGHBORINFO_CONFIG:
+        os << "module_config_neighborinfo" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_AMBIENTLIGHTING_CONFIG:
+        os << "module_config_ambientlighting" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_DETECTIONSENSOR_CONFIG:
+        os << "module_config_detectionsensor" << endl;
+        break;
+    case meshtastic_AdminMessage_ModuleConfigType_PAXCOUNTER_CONFIG:
+        os << "module_config_paxcounter" << endl;
+        break;
+    default:
+        break;
+    }
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_DeviceConnectionStatus &s)
+{
+    INDENT << "device_connection_status {" << endl;
+    adjust_indent(os, 2);
+    if (s.has_wifi) {
+        os << s.wifi;
+    }
+    if (s.has_ethernet) {
+        os << s.ethernet;
+    }
+    if (s.has_bluetooth) {
+        os << s.bluetooth;
+    }
+    if (s.has_serial) {
+        os << s.serial;
+    }
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_WifiConnectionStatus &s)
+{
+    INDENT << "wifi_connection_status {" << endl;
+    adjust_indent(os, 2);
+    if (s.has_status) {
+        os << s.status;
+    }
+    INDENT << "ssid: " << s.ssid << endl;
+    INDENT << "rssi: " << s.rssi << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_EthernetConnectionStatus &s)
+{
+    INDENT << "ethernet_connection_status {" << endl;
+    adjust_indent(os, 2);
+    if (s.has_status) {
+        os << s.status;
+    }
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_BluetoothConnectionStatus &s)
+{
+    INDENT << "bluetooth_connection_status {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "pin: " << setfill('0') << setw(6) << s.pin << endl;
+    INDENT << "rssi: " << s.rssi << endl;
+    INDENT << "is_connected: " << (int) s.is_connected << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_SerialConnectionStatus &s)
+{
+    INDENT << "serial_connection_status {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "baud: " << s.baud << endl;
+    INDENT << "is_connected: " << s.is_connected << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+extern ostream &operator<<(ostream &os, const meshtastic_NetworkConnectionStatus &s)
+{
+    INDENT << "network_connection_status {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "ip_addr: "
+           << (int) ((s.ip_address & 0xff000000) >> 6)
+           << (int) ((s.ip_address & 0x00ff0000) >> 4)
+           << (int) ((s.ip_address & 0x0000ff00) >> 2)
+           << (int) ((s.ip_address & 0x000000ff) >> 0)
+           << endl;
+    INDENT << "is_connected: " << (int) s.is_connected << endl;
+    INDENT << "is_mqtt_connected: " << (int) s.is_mqtt_connected << endl;
+    INDENT << "is_syslog_connected: " << (int) s.is_syslog_connected << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_HamParameters &p)
+{
+    INDENT << "ham_parameters {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "call_sign: " << p.call_sign << endl;
+    INDENT << "tx_power: " << p.tx_power << endl;
+    INDENT << "frequency: " << p.frequency << endl;
+    INDENT << "short_name: " << p.short_name << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_NodeRemoteHardwarePinsResponse &p)
+{
+    INDENT << "node_remote_hardware_pins_response {" << endl;
+    adjust_indent(os, 2);
+    for (pb_size_t i = 0; i < p.node_remote_hardware_pins_count; i++) {
+        os << p.node_remote_hardware_pins[i];
+    }
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_NodeRemoteHardwarePin &p)
+{
+    INDENT << "node_remote_hardware_pin {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "node_num: !" << hex << setfill('0') << setw(8)
+           << p.node_num << dec << endl;
+    if (p.has_pin) {
+        os << p.pin;
+    }
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_RemoteHardwarePin &p)
+{
+    INDENT << "remote_hardware_pin {" << endl;
+    adjust_indent(os, 2);
+    INDENT << "gpio_pin: " << (int) p.gpio_pin << endl;
+    INDENT << "name: " << p.name << endl;
+    INDENT << "type: " << p.type << endl;
+    adjust_indent(os, -2);
+    INDENT << "}" << endl;
+
+    return os;
+}
+
+ostream &operator<<(ostream &os, const meshtastic_RemoteHardwarePinType &t)
+{
+    switch (t) {
+    case meshtastic_RemoteHardwarePinType_UNKNOWN:
+        os << "unknown";
+        break;
+    case meshtastic_RemoteHardwarePinType_DIGITAL_READ:
+        os << "digital_read";
+        break;
+    case meshtastic_RemoteHardwarePinType_DIGITAL_WRITE:
+        os << "digital_write";
+        break;
+    default:
+        break;
+    }
+
+    return os;
+}
+
 ostream &operator<<(ostream &os, const meshtastic_RouteDiscovery &r)
 {
     unsigned int i;

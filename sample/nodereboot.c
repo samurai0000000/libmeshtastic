@@ -15,14 +15,41 @@
 static void mt_handler(struct mt_client *mtc, const void *packet, size_t size,
                        const meshtastic_FromRadio *from_radio)
 {
+    int ret;
+
     (void)(mtc);
     (void)(packet);
     (void)(size);
 
     switch (from_radio->which_payload_variant) {
+    case meshtastic_FromRadio_packet_tag:
+        if ((from_radio->packet.which_payload_variant ==
+             meshtastic_MeshPacket_decoded_tag) &&
+            (from_radio->packet.decoded.portnum ==
+             meshtastic_PortNum_ADMIN_APP)) {
+            pb_istream_t stream;
+            meshtastic_AdminMessage admmsg;
+            stream = pb_istream_from_buffer(
+                from_radio->packet.decoded.payload.bytes,
+                from_radio->packet.decoded.payload.size);
+            ret = pb_decode(&stream, meshtastic_AdminMessage_fields, &admmsg);
+            if (ret == 1) {
+                if (admmsg.which_payload_variant ==
+                    meshtastic_AdminMessage_get_device_metadata_response_tag) {
+                }
+            } else {
+                fprintf(stderr, "pb_decode admmsg failed!\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        break;
     case meshtastic_FromRadio_config_complete_id_tag:
-        printf("rebooting\n");
-        mt_admin_message_reboot(mtc, 0);
+        printf("device_metadata_request\n");
+        ret = mt_admin_message_device_metadata_request(mtc);
+        if (ret != 0) {
+            fprintf(stderr, "failed!\n");
+            exit(EXIT_FAILURE);
+        }
  	    break;
     default:
         break;

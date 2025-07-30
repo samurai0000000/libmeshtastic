@@ -130,6 +130,11 @@ protected:
         SimpleClient::gotRouting(packet, routing);
     }
 
+    inline void gotAdminMessage(const meshtastic_MeshPacket &packet,
+                         const meshtastic_AdminMessage &adminMessage) {
+        SimpleClient::gotAdminMessage(packet, adminMessage);
+    }
+
     inline virtual void gotTelemetry(const meshtastic_MeshPacket &packet,
                                      const meshtastic_Telemetry &telemetry) {
         SimpleClient::gotTelemetry(packet, telemetry);

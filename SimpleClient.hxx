@@ -31,6 +31,7 @@ public:
     uint32_t getId(const string &name) const;
     string getChannelName(uint8_t channel) const;
     uint8_t getChannel(const string &name) const;
+    bool isChannelValid(uint8_t channel) const;
 
     bool sendDisconnect(void);
     bool sendWantConfig(void);
@@ -125,6 +126,8 @@ protected:
                          const meshtastic_User &user);
     virtual void gotRouting(const meshtastic_MeshPacket &packet,
                             const meshtastic_Routing &routing);
+    virtual void gotAdminMessage(const meshtastic_MeshPacket &packet,
+                                 const meshtastic_AdminMessage &adminMessage);
     virtual void gotTelemetry(const meshtastic_MeshPacket &packet,
                               const meshtastic_Telemetry &telemetry);
     virtual void gotDeviceMetrics(const meshtastic_MeshPacket &packet,

@@ -77,6 +77,8 @@ extern int mt_text_message(struct mt_client *mtc,
                            const char *message,
                            unsigned int hop_start, bool want_ack);
 
+extern int mt_admin_message_device_metadata_request(
+    struct mt_client *mtc);
 extern int mt_admin_message_reboot(struct mt_client *mtc,
                                    uint32_t seconds);
 
