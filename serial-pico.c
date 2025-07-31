@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <hardware/uart.h>
-#include <hardware/gpio.h>
 #include <libmeshtastic.h>
 #include <serial.h>
 

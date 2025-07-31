@@ -55,7 +55,9 @@ string SimpleClient::lookupShortName(uint32_t id) const
     it = _nodeInfos.find(id);
     if (it != _nodeInfos.end()) {
         s = it->second.user.short_name;
-    } else {
+    }
+
+    if (s.empty()) {
         char buf[8];
         snprintf(buf, sizeof(buf) - 1, "%.4x", (uint16_t) (id & 0xffffU));
         s = buf;
