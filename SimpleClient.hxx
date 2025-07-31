@@ -62,46 +62,46 @@ public:
         return _loraConfig;
     }
 
-    inline const map<uint8_t, meshtastic_Channel> channels(void) const
+    inline const map<uint8_t, meshtastic_Channel> &channels(void) const
     {
         return _channels;
     }
 
-    inline const map<uint32_t, meshtastic_Position> positions(void) const {
+    inline const map<uint32_t, meshtastic_Position> &positions(void) const {
         return _positions;
     }
 
-    inline const map<uint32_t, meshtastic_DeviceMetrics> deviceMetrics(void) const
+    inline const map<uint32_t, meshtastic_DeviceMetrics> &deviceMetrics(void) const
     {
         return _deviceMetrics;
     }
 
-    inline const map<uint32_t, meshtastic_EnvironmentMetrics> environmentMetrics(void) const
+    inline const map<uint32_t, meshtastic_EnvironmentMetrics> &environmentMetrics(void) const
     {
         return _environmentMetrics;
     }
 
-    inline const map<uint32_t, meshtastic_AirQualityMetrics> airQualityMetrics(void) const
+    inline const map<uint32_t, meshtastic_AirQualityMetrics> &airQualityMetrics(void) const
     {
         return _airQualityMetrics;
     }
 
-    inline const map<uint32_t, meshtastic_PowerMetrics> powerMetrics(void) const
+    inline const map<uint32_t, meshtastic_PowerMetrics> &powerMetrics(void) const
     {
         return _powerMetrics;
     }
 
-    inline const map<uint32_t, meshtastic_LocalStats> localStats(void) const
+    inline const map<uint32_t, meshtastic_LocalStats> &localStats(void) const
     {
         return _localStats;
     }
 
-    inline const map<uint32_t, meshtastic_HealthMetrics> healthMetrics(void) const
+    inline const map<uint32_t, meshtastic_HealthMetrics> &healthMetrics(void) const
     {
         return _healthMetrics;
     }
 
-    inline const map<uint32_t, meshtastic_HostMetrics> hostMetrics(void) const
+    inline const map<uint32_t, meshtastic_HostMetrics> &hostMetrics(void) const
     {
         return _hostMetrics;
     }

@@ -146,7 +146,7 @@ uint8_t SimpleClient::getChannel(const string &name) const
 
     for (map<uint8_t, meshtastic_Channel>::const_iterator it =
              _channels.begin(); it != _channels.end(); it++) {
-        if (name == it->second.settings.name) {
+        if (name == getChannelName(it->first)) {
             channel = it->first;
             break;
         }
