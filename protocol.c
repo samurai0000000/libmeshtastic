@@ -11,9 +11,11 @@
 #include <time.h>
 #include <libmeshtastic.h>
 
-#if defined(LIB_PICO_PLATFORM) && (PICO_STACK_SIZE < 16384)
+#if defined(LIB_PICO_PLATFORM)
 #define AVOID_STACK_VARIABLES
 #endif
+
+#define PB_BUF_SIZE 512
 
 /*
  * On memory constrained MCUs such as a Pi Pico, the stack size is small
@@ -23,7 +25,7 @@
  * access issues on those platforms.
  */
 #if defined(AVOID_STACK_VARIABLES)
-static uint8_t pb_buf[512];
+static uint8_t pb_buf[sizeof(struct mt_pb_header) + PB_BUF_SIZE];
 static pb_istream_t istream;
 static pb_ostream_t ostream;
 static meshtastic_FromRadio from_radio;
@@ -91,7 +93,7 @@ static int mt_send_to_radio(struct mt_client *mtc,
 {
     int ret = 0;
 #if !defined(AVOID_STACK_VARIABLES)
-    uint8_t pb_buf[512];
+    uint8_t pb_buf[sizeof(struct mt_pb_header) + PB_BUF_SIZE];
     pb_ostream_t ostream;
 #endif
     struct mt_pb_header *header = (struct mt_pb_header *) pb_buf;
@@ -108,8 +110,7 @@ static int mt_send_to_radio(struct mt_client *mtc,
         goto done;
     }
 
-    ostream = pb_ostream_from_buffer(pb_buf + sizeof(*header),
-                                     sizeof(pb_buf) - sizeof(*header));
+    ostream = pb_ostream_from_buffer(pb_buf + sizeof(*header), PB_BUF_SIZE);
     ret = pb_encode(&ostream, meshtastic_ToRadio_fields, to_radio);
     if (ret != 1) {
         errno = EIO;

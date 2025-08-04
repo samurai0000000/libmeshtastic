@@ -21,6 +21,21 @@ SimpleClient::~SimpleClient()
 
 }
 
+void SimpleClient::clear(void)
+{
+    _nodeInfos.clear();
+    _loraConfig = meshtastic_Config_LoRaConfig();
+    _channels.clear();
+    _positions.clear();
+    _deviceMetrics.clear();
+    _environmentMetrics.clear();
+    _airQualityMetrics.clear();
+    _powerMetrics.clear();
+    _localStats.clear();
+    _healthMetrics.clear();
+    _hostMetrics.clear();
+}
+
 uint32_t SimpleClient::whoami(void) const
 {
     return _myNodeInfo.my_node_num;
@@ -201,10 +216,11 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
         sc->gotChannel(fromRadio->channel);
         break;
     case meshtastic_FromRadio_config_complete_id_tag:
-        sc->_isConnected = true;
+        sc->gotConfigCompleteId(fromRadio->config_complete_id);
         break;
     case meshtastic_FromRadio_rebooted_tag:
-        sc->_isConnected = false;
+        sc->gotRebooted(fromRadio->rebooted);
+        break;
         break;
     default:
         break;
@@ -216,6 +232,10 @@ bool SimpleClient::sendDisconnect(void)
     bool result = false;
 
     result = (mt_send_disconnect(&_mtc) == 0);
+    if (result) {
+        clear();
+        _isConnected = false;
+    }
 
     return result;
 }
@@ -370,6 +390,20 @@ void SimpleClient::gotChannel(const meshtastic_Channel &channel)
     uint8_t index = channel.index;
 
     _channels[index] = channel;
+}
+
+void SimpleClient::gotConfigCompleteId(uint32_t id)
+{
+    (void)(id);
+    _isConnected = true;
+}
+
+void SimpleClient::gotRebooted(bool rebooted)
+{
+    if (rebooted) {
+        clear();
+        _isConnected = false;
+    }
 }
 
 void SimpleClient::gotTextMessage(const meshtastic_MeshPacket &packet,

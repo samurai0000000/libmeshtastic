@@ -24,6 +24,8 @@ public:
     SimpleClient();
     ~SimpleClient();
 
+    virtual void clear(void);
+
     uint32_t whoami(void) const;
     string lookupLongName(uint32_t id) const;
     string lookupShortName(uint32_t id) const;
@@ -118,6 +120,8 @@ protected:
     virtual void gotConfig(const meshtastic_Config &config);
     virtual void gotLoraConfig(const meshtastic_Config_LoRaConfig &c);
     virtual void gotChannel(const meshtastic_Channel &channel);
+    virtual void gotConfigCompleteId(uint32_t id);
+    virtual void gotRebooted(bool rebooted);
     virtual void gotTextMessage(const meshtastic_MeshPacket &packet,
                                 const string &message);
     virtual void gotPosition(const meshtastic_MeshPacket &packet,

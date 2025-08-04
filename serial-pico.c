@@ -87,7 +87,11 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
         should_read = 1;
     }
 
-    ret = serial_read(uart1, mtc->inbuf + mtc->inbuf_len, should_read);
+    if (serial_rx_ready(uart1) >= 0) {
+        ret = serial_read(uart1, mtc->inbuf + mtc->inbuf_len, should_read);
+    } else {
+        ret = 0;
+    }
 
     mtc->inbuf_len += ret;
     mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;

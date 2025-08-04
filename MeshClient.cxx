@@ -32,6 +32,37 @@ MeshClient::~MeshClient()
     stop();
 }
 
+void MeshClient::clear(void)
+{
+    SimpleClient::clear();
+
+    _deviceConfig = meshtastic_Config_DeviceConfig();
+    _positionConfig = meshtastic_Config_PositionConfig();
+    _powerConfig = meshtastic_Config_PowerConfig();
+    _networkConfig = meshtastic_Config_NetworkConfig();
+    _displayConfig = meshtastic_Config_DisplayConfig();
+    _bluetoothConfig = meshtastic_Config_BluetoothConfig();
+    _securityConfig = meshtastic_Config_SecurityConfig();
+    _sessionkeyConfig = meshtastic_Config_SessionkeyConfig();
+    _queueStatus = meshtastic_QueueStatus();
+    _deviceMetadata = meshtastic_DeviceMetadata();
+    _deviceUIConfig = meshtastic_DeviceUIConfig();
+    _fileInfos.clear();
+    _modMQTT = meshtastic_ModuleConfig_MQTTConfig();
+    _modSerial = meshtastic_ModuleConfig_SerialConfig();
+    _modExternalNotification = meshtastic_ModuleConfig_ExternalNotificationConfig();
+    _modStoreForward = meshtastic_ModuleConfig_StoreForwardConfig();
+    _modRangeTest = meshtastic_ModuleConfig_RangeTestConfig();
+    _modTelemetry = meshtastic_ModuleConfig_TelemetryConfig();
+    _modCannedMessage = meshtastic_ModuleConfig_CannedMessageConfig();
+    _modAudio = meshtastic_ModuleConfig_AudioConfig();
+    _modRemoteHardware = meshtastic_ModuleConfig_RemoteHardwareConfig();
+    _modNeighborInfo = meshtastic_ModuleConfig_NeighborInfoConfig();
+    _modAmbientLighting = meshtastic_ModuleConfig_AmbientLightingConfig();
+    _modDetectionSensor = meshtastic_ModuleConfig_DetectionSensorConfig();
+    _modPaxcounter = meshtastic_ModuleConfig_PaxcounterConfig();
+}
+
 bool MeshClient::attachSerial(string device)
 {
     bool result = false;
@@ -152,11 +183,31 @@ bool MeshClient::adminMessageReboot(unsigned int seconds)
     return result;
 }
 
+
+unsigned int MeshClient::hopsAway(uint32_t node_num) const
+{
+    uint8_t hops = 0xffU;
+    map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
+
+    it = _nodeInfos.find(node_num);
+    if ((it != _nodeInfos.end()) && it->second.has_hops_away) {
+        hops = it->second.hops_away;
+    }
+
+    return (unsigned int) hops;
+}
+
+unsigned int MeshClient::hopsAway(const meshtastic_MeshPacket &packet) const
+{
+    return hopsAway(packet.from);
+}
+
 void MeshClient::mtEvent(struct mt_client *mtc,
                          const void *packet, size_t size,
                          const meshtastic_FromRadio *fromRadio)
 {
     MeshClient *client = (MeshClient *) mtc->ctx;
+
     (void)(packet);
     (void)(size);
 
@@ -552,18 +603,15 @@ void MeshClient::gotModuleConfigPaxcounter(const meshtastic_ModuleConfig_Paxcoun
 
 void MeshClient::gotChannel(const meshtastic_Channel &channel)
 {
-    uint8_t index = channel.index;
-
-    _channels[index] = channel;
-
+    SimpleClient::gotChannel(channel);
     if (_verbose) {
-        cout << _channels[index];
+        cout << channel;
     }
 }
 
 void MeshClient::gotConfigCompleteId(uint32_t id)
 {
-    _isConnected = true;
+    SimpleClient::gotConfigCompleteId(id);
     if (_verbose) {
         cout << "ConfigCompleteId: 0x"
              << hex << setfill('0') << setw(8) << id << dec << endl;
@@ -572,7 +620,7 @@ void MeshClient::gotConfigCompleteId(uint32_t id)
 
 void MeshClient::gotRebooted(bool rebooted)
 {
-    _isConnected = false;
+    SimpleClient::gotRebooted(rebooted);
     if (_verbose) {
         cout << "Rebooted: %d\n" << (int) rebooted << endl;
     }

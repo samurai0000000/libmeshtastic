@@ -18,12 +18,17 @@
 
 using namespace std;
 
+/*
+ * Suitable for use on a full system with OS (x86, aarch64, etc.)
+ */
 class MeshClient : public SimpleClient {
 
 public:
 
     MeshClient();
     ~MeshClient();
+
+    virtual void clear(void);
 
     bool attachSerial(string device);
     void detach(void);
@@ -47,6 +52,9 @@ public:
 
     bool adminMessageReboot(unsigned int seconds = 0);
 
+    unsigned int hopsAway(uint32_t node_num) const;
+    unsigned int hopsAway(const meshtastic_MeshPacket &packet) const;
+
     inline uint32_t whoami(void) const {
         return SimpleClient::whoami();
     }
@@ -65,6 +73,106 @@ public:
 
     inline string getChannelName(uint8_t channel) const {
         return SimpleClient::getChannelName(channel);
+    }
+
+    inline const meshtastic_Config_DeviceConfig &deviceConfig(void) const {
+        return _deviceConfig;
+    }
+
+    inline const meshtastic_Config_PositionConfig &positionConfig(void) const {
+        return _positionConfig;
+    }
+
+    inline const meshtastic_Config_PowerConfig &powerConfig(void) const {
+        return _powerConfig;
+    }
+
+    inline const meshtastic_Config_NetworkConfig &networkConfig(void) const {
+        return _networkConfig;
+    }
+
+    inline const meshtastic_Config_DisplayConfig &displayConfig(void) const {
+        return _displayConfig;
+    }
+
+    inline const meshtastic_Config_BluetoothConfig &bluetoothConfig(void) const {
+        return _bluetoothConfig;
+    }
+
+    inline const meshtastic_Config_SecurityConfig &securityConfig(void) const  {
+        return _securityConfig;
+    }
+
+    inline const meshtastic_Config_SessionkeyConfig &sessionkeyConfig(void) const {
+        return _sessionkeyConfig;
+    }
+
+    inline const meshtastic_QueueStatus &queueStatus(void) const {
+        return _queueStatus;
+    }
+
+    inline const meshtastic_DeviceMetadata &deviceMetadata(void) const {
+        return _deviceMetadata;
+    }
+
+    inline const meshtastic_DeviceUIConfig &deviceUIConfig(void) const {
+        return _deviceUIConfig;
+    }
+
+    inline const map<string, meshtastic_FileInfo> &fileInfos(void) const {
+        return _fileInfos;
+    }
+
+    inline const meshtastic_ModuleConfig_MQTTConfig &modMQTT(void) const {
+        return _modMQTT;
+    }
+
+    inline const meshtastic_ModuleConfig_SerialConfig &modSerial(void) const {
+        return _modSerial;
+    }
+
+    inline const meshtastic_ModuleConfig_ExternalNotificationConfig &modExternalNotification(void) const {
+        return _modExternalNotification;
+    }
+
+    inline const meshtastic_ModuleConfig_StoreForwardConfig &modStoreForward(void) const {
+        return _modStoreForward;
+    }
+
+    inline const meshtastic_ModuleConfig_RangeTestConfig &modRangeTest(void) const {
+        return _modRangeTest;
+    }
+
+    inline const meshtastic_ModuleConfig_TelemetryConfig &modTelemetry(void) const {
+        return _modTelemetry;
+    }
+
+    inline const meshtastic_ModuleConfig_CannedMessageConfig &modCannedMessage(void) const {
+        return _modCannedMessage;
+    }
+
+    inline const meshtastic_ModuleConfig_AudioConfig &modAudio(void) const {
+        return _modAudio;
+    }
+
+    inline const meshtastic_ModuleConfig_RemoteHardwareConfig &modRemoteHardware(void) const {
+        return _modRemoteHardware;
+    }
+
+    inline const meshtastic_ModuleConfig_NeighborInfoConfig &modNeighborInfo(void) const {
+        return _modNeighborInfo;
+    }
+
+    inline const meshtastic_ModuleConfig_AmbientLightingConfig &modAmbientLighting(void) const {
+        return _modAmbientLighting;
+    }
+
+    inline const meshtastic_ModuleConfig_DetectionSensorConfig &modDetectionSensor(void) const {
+        return _modDetectionSensor;
+    }
+
+    inline const meshtastic_ModuleConfig_PaxcounterConfig &modPaxcounter(void) const {
+        return _modPaxcounter;
     }
 
 protected:
