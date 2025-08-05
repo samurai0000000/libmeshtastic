@@ -10,8 +10,11 @@
 #include <errno.h>
 #include <time.h>
 #include <libmeshtastic.h>
+#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
+#include <serial.h>
+#endif
 
-#if defined(LIB_PICO_PLATFORM)
+#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
 #define AVOID_STACK_VARIABLES
 #endif
 
