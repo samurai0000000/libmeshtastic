@@ -87,8 +87,8 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
         should_read = 1;
     }
 
-    if (serial_rx_ready(uart1) >= 0) {
-        ret = serial_read(uart1, mtc->inbuf + mtc->inbuf_len, should_read);
+    if (serial_rx_ready() >= 0) {
+        ret = serial_read(mtc->inbuf + mtc->inbuf_len, should_read);
     } else {
         ret = 0;
     }
@@ -121,9 +121,9 @@ int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
     (void)(mtc);
 
     while (size > 0) {
-        ret = serial_write(uart1, packet, size);
+        ret = serial_write(packet, size);
         if (ret == -1) {
-            serial_printf(uart0, "%s: write() returned %d!\n", ret);
+            console_printf("%s: write() returned %d!\n", ret);
             goto done;
         }
 
