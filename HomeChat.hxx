@@ -35,10 +35,13 @@ protected:
     virtual bool isAuthorized(uint32_t node_num) const;
     virtual void setLastMessageFrom(uint32_t node_num, const string &message);
     virtual string getLastMessageFrom(uint32_t node_num) const;
+
+    virtual string handleUptime(uint32_t node_num, const string &message);
     virtual string handleZeroHops(uint32_t node_num, const string &message);
     virtual string handleNodes(uint32_t node_num, const string &message);
     virtual string handleMeshStats(uint32_t node_num, const string &message);
     virtual string handleStatus(uint32_t node_num, const string &message);
+
     virtual int printf(const char *format, ...) const;
     virtual int vprintf(const char *format, va_list ap) const;
 
@@ -46,8 +49,8 @@ protected:
 
     shared_ptr<SimpleClient> _client;
 
+    time_t _since;
     map<uint32_t, string> _lastMessageFrom;
-
     vector<uint32_t> _admins;
     vector<uint32_t> _mates;
 

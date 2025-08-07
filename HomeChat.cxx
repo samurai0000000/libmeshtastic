@@ -5,6 +5,7 @@
  */
 
 #include <stdarg.h>
+#include <time.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -16,6 +17,7 @@
 HomeChat::HomeChat(shared_ptr<SimpleClient> client)
 {
     setClient(client);
+    _since = time(NULL);
 }
 
 HomeChat::~HomeChat()
@@ -103,7 +105,8 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     }
 
     // rollcall on channel
-    if (channelMessage && (first_word == "rollcall")) {
+    if (channelMessage && (first_word == "rollcall") &&
+        isAuthorized(packet.from)) {
         reply = _client->lookupShortName(packet.from) + ", " +
             _client->lookupShortName(_client->whoami()) +
             " is at your service";
@@ -111,9 +114,15 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     }
 
     // check for authority
-    if (addressed2Me && !isAuthorized(packet.from)) {
+    if ((directMessage || addressed2Me) && !isAuthorized(packet.from)) {
         reply = _client->lookupShortName(packet.from) +
             ", you are not authorized to speak to me!";
+        goto done;
+    }
+
+    // uptime
+    if ((directMessage || addressed2Me) && (message == "uptime")) {
+        reply = handleUptime(packet.from, message);
         goto done;
     }
 
@@ -172,19 +181,6 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
-    // unrecognized message
-    if (directMessage || addressed2Me) {
-        if (getLastMessageFrom(packet.from) == message) {
-            // drop repetitive messages and do not reply
-        } else {
-            // we don't understand
-            reply = _client->lookupShortName(packet.from) +
-                ", I don't understand what you just said...";
-        }
-
-        goto done;
-    }
-
 done:
 
     setLastMessageFrom(packet.from, message);
@@ -227,6 +223,33 @@ string HomeChat::getLastMessageFrom(uint32_t node_num) const
     }
 
     return s;
+}
+
+string HomeChat::handleUptime(uint32_t node_num, const string &message)
+{
+    time_t now;
+    uint32_t upsec;
+    unsigned int days, hour, min, sec;
+    char buf[64];
+
+    (void)(node_num);
+    (void)(message);
+
+    now = time(NULL);
+    upsec = now - _since;
+    sec = upsec % 60;
+    min = (upsec / 60) % 60;
+    hour = (upsec / 3600) % 24;
+    days = (upsec) / 86400;
+    if (days == 0) {
+        snprintf(buf, sizeof(buf) - 1, "Up-time: %.2u:%.2u:%.2u",
+                 hour, min, sec);
+    } else {
+        snprintf(buf, sizeof(buf) - 1, "Up-time: %ud %.2u:%.2u:%.2u",
+                 days, hour, min, sec);
+    }
+
+    return string(buf);
 }
 
 string HomeChat::handleZeroHops(uint32_t node_num, const string &message)
