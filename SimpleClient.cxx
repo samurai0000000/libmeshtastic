@@ -4,6 +4,7 @@
  * Copyright (C) 2025, Charles Chiou
  */
 
+#include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <SimpleClient.hxx>
@@ -14,6 +15,7 @@ SimpleClient::SimpleClient()
     _mtc.handler = this->mtEvent;
     _mtc.ctx = this;
     _isConnected = false;
+    resetMeshStats();
 }
 
 SimpleClient::~SimpleClient()
@@ -39,6 +41,22 @@ void SimpleClient::clear(void)
 uint32_t SimpleClient::whoami(void) const
 {
     return _myNodeInfo.my_node_num;
+}
+
+string SimpleClient::whoamiString(void) const
+{
+    return idString(whoami());
+}
+
+string SimpleClient::idString(uint32_t id) const
+{
+    char buf[16];
+#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
+    snprintf(buf, sizeof(buf) - 1, "!%.8lx", id);
+#else
+    snprintf(buf, sizeof(buf) - 1, "!%.8x", id);
+#endif
+    return string(buf);
 }
 
 string SimpleClient::lookupLongName(uint32_t id) const
@@ -268,9 +286,73 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
         hop_start = _loraConfig.hop_limit;
     }
 
-    result = (mt_text_message(&_mtc, dest, channel,
-                              message.c_str(),
-                              hop_start, want_ack) == 0);
+    if (message.size() <= 200) {
+        result = (mt_text_message(&_mtc, dest, channel,
+                                  message.c_str(),
+                                  hop_start, want_ack) == 0);
+        if (result) {
+            if (dest == 0xffffffffU) {
+                _cmTx++;
+            } else {
+                _dmTx++;
+            }
+        }
+    } else {
+#if 0
+        string multipart = message;
+        string substring;
+        size_t pos;
+        size_t count = 0;
+
+        while (!multipart.empty()) {
+            if (multipart.size() > 200) {
+                pos = multipart.rfind('\n', 200);
+                if (pos == string::npos) {
+                    result = false;
+                    break;
+                } else {
+                    substring = multipart.substr(0, pos);
+                    multipart = multipart.substr(pos);
+                }
+            } else {
+                substring = multipart;
+                multipart.clear();
+            }
+
+            if (count > 5) {
+                substring = "... <truncated> ...";
+                multipart.clear();
+            }
+
+            result = (mt_text_message(&_mtc, dest, channel,
+                                      substring.c_str(),
+                                      hop_start, want_ack) == 0);
+            if (result) {
+                if (dest == 0xffffffffU) {
+                    _cmTx++;
+                } else {
+                    _dmTx++;
+                }
+            } else {
+                break;
+            }
+
+            count++;
+        }
+#else
+        string modified = message.substr(0, 180) + "\n...<truncated>...";
+        result = (mt_text_message(&_mtc, dest, channel,
+                                  modified.c_str(),
+                                  hop_start, want_ack) == 0);
+        if (result) {
+            if (dest == 0xffffffffU) {
+                _cmTx++;
+            } else {
+                _dmTx++;
+            }
+        }
+#endif
+    }
 
     return result;
 }
@@ -409,8 +491,13 @@ void SimpleClient::gotRebooted(bool rebooted)
 void SimpleClient::gotTextMessage(const meshtastic_MeshPacket &packet,
                                   const string &message)
 {
-    (void)(packet);
     (void)(message);
+
+    if (packet.to == whoami()) {
+        _dmRx++;
+    } else {
+        _cmRx++;
+    }
 }
 
 void SimpleClient::gotPosition(const meshtastic_MeshPacket &packet,

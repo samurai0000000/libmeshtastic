@@ -4,6 +4,7 @@
  * Copyright (C) 2025, Charles Chiou
  */
 
+#include <stdarg.h>
 #include <errno.h>
 #include <libmeshtastic.h>
 #include <serial.h>

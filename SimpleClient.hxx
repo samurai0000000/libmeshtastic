@@ -27,6 +27,8 @@ public:
     virtual void clear(void);
 
     uint32_t whoami(void) const;
+    string whoamiString(void) const;
+    string idString(uint32_t id) const;
     string lookupLongName(uint32_t id) const;
     string lookupShortName(uint32_t id) const;
     string getDisplayName(uint32_t id) const;
@@ -170,6 +172,38 @@ protected:
     map<uint32_t, meshtastic_LocalStats> _localStats;
     map<uint32_t, meshtastic_HealthMetrics> _healthMetrics;
     map<uint32_t, meshtastic_HostMetrics> _hostMetrics;
+
+public:
+
+    inline void resetMeshStats(void) {
+        _dmRx = 0;
+        _dmTx = 0;
+        _cmRx = 0;
+        _cmTx = 0;
+    }
+
+    inline unsigned int dmRx(void) const {
+        return _dmRx;
+    }
+
+    inline unsigned int dmTx(void) const {
+        return _dmTx;
+    }
+
+    inline unsigned int cmRx(void) const {
+        return _cmRx;
+    }
+
+    inline unsigned int cmTx(void) const {
+        return _cmTx;
+    }
+
+protected:
+
+    unsigned int _dmRx;
+    unsigned int _dmTx;
+    unsigned int _cmRx;
+    unsigned int _cmTx;
 
 };
 
