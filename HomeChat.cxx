@@ -18,6 +18,7 @@ HomeChat::HomeChat(shared_ptr<SimpleClient> client)
 {
     setClient(client);
     _since = time(NULL);
+    clearAuthchansAdminsMates();
 }
 
 HomeChat::~HomeChat()
@@ -28,6 +29,114 @@ HomeChat::~HomeChat()
 void HomeChat::setClient(shared_ptr<SimpleClient> client)
 {
     _client = client;
+}
+
+void HomeChat::clearAuthchansAdminsMates(void)
+{
+    _authchans.clear();
+    _admins.clear();
+    _mates.clear();
+}
+
+bool HomeChat::addAuthChannel(const string &channel,
+                              const meshtastic_ChannelSettings_psk_t &psk,
+                              bool ignoreDup)
+{
+    map<string, meshtastic_ChannelSettings_psk_t>::iterator it;
+
+    it = _authchans.find(channel);
+    if (it != _authchans.end()) {
+        if (ignoreDup == false) {
+            return false;
+        }
+    }
+
+    _authchans[channel] = psk;
+
+    return true;
+}
+
+bool HomeChat::addAdmin(uint32_t node_num,
+                        const meshtastic_User_public_key_t &pubkey,
+                        bool ignoreDup)
+{
+    map<uint32_t, meshtastic_User_public_key_t>::iterator it;
+
+    it = _admins.find(node_num);
+    if (it != _admins.end()) {
+        if (ignoreDup == false) {
+            return false;
+        }
+    }
+
+    _admins[node_num] = pubkey;
+
+    return true;
+}
+
+bool HomeChat::addMate(uint32_t node_num,
+                       const meshtastic_User_public_key_t &pubkey,
+                       bool ignoreDup)
+{
+    map<uint32_t, meshtastic_User_public_key_t>::iterator it;
+
+    it = _mates.find(node_num);
+    if (it != _mates.end()) {
+        if (ignoreDup == false) {
+            return false;
+        }
+    }
+
+    _mates[node_num] = pubkey;
+
+    return true;
+}
+
+bool HomeChat::isAuthChannel(const string &channel) const
+{
+    bool isAuthChan = false;
+    uint8_t chanId = 0xffU;
+    map<uint8_t, meshtastic_Channel>::const_iterator itChan;
+    map<string, meshtastic_ChannelSettings_psk_t>::const_iterator itAuthChan;
+
+    chanId = _client->getChannel(channel);
+    if (chanId == 0xffU) {
+        goto done;
+    }
+
+    itChan = _client->channels().find(chanId);
+    if (itChan == _client->channels().end()) {
+        goto done;
+    } else if (itChan->second.has_settings == false) {
+        goto done;
+    }
+
+    itAuthChan = _authchans.find(channel);
+    if (itAuthChan != _authchans.end()) {
+        if ((itChan->second.settings.psk.size ==
+             itAuthChan->second.size) &&
+            (memcmp(itChan->second.settings.psk.bytes,
+                    itAuthChan->second.bytes,
+                    itAuthChan->second.size) == 0)) {
+            isAuthChan = true;
+        }
+    }
+
+done:
+
+    return isAuthChan;
+}
+
+const map<uint32_t, meshtastic_User_public_key_t> &
+HomeChat::admins(void) const
+{
+    return _admins;
+}
+
+const map<uint32_t, meshtastic_User_public_key_t> &
+HomeChat::mates(void) const
+{
+    return _mates;
 }
 
 bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
@@ -107,16 +216,18 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     // rollcall on channel
     if (channelMessage && (first_word == "rollcall") &&
         isAuthorized(packet.from)) {
-        reply = _client->lookupShortName(packet.from) + ", " +
-            _client->lookupShortName(_client->whoami()) +
-            " is at your service";
+        reply = handleRollcall(packet.from, message);
         goto done;
     }
 
     // check for authority
     if ((directMessage || addressed2Me) && !isAuthorized(packet.from)) {
-        reply = _client->lookupShortName(packet.from) +
-            ", you are not authorized to speak to me!";
+        if (first_word != "all") {
+            reply = _client->lookupShortName(packet.from) +
+                ", you are not authorized to speak to me!";
+        } else {
+            reply = "";  // mute if 'all' was the target
+        }
         goto done;
     }
 
@@ -141,6 +252,24 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     // meshstats
     if ((directMessage || addressed2Me) && (message == "meshstats")) {
         reply = handleMeshStats(packet.from, message);
+        goto done;
+    }
+
+    // authchans
+    if ((directMessage || addressed2Me) && (message == "authchans")) {
+        reply = handleAuthchans(packet.from, message);
+        goto done;
+    }
+
+    // admins
+    if ((directMessage || addressed2Me) && (message == "admins")) {
+        reply = handleAdmins(packet.from, message);
+        goto done;
+    }
+
+    // mates
+    if ((directMessage || addressed2Me) && (message == "mates")) {
+        reply = handleMates(packet.from, message);
         goto done;
     }
 
@@ -202,9 +331,42 @@ done:
 
 bool HomeChat::isAuthorized(uint32_t node_num) const
 {
-    (void)(node_num);
+    bool isAdmin = false;
+    bool isMate = false;
+    map<uint32_t, meshtastic_NodeInfo>::const_iterator itNodeInfo;
+    map<uint32_t, meshtastic_User_public_key_t>::const_iterator itAdmin;
+    map<uint32_t, meshtastic_User_public_key_t>::const_iterator itMate;
 
-    return true;
+    itNodeInfo = _client->nodeInfos().find(node_num);
+    if (itNodeInfo == _client->nodeInfos().end()) {
+        goto done;
+    } else if (itNodeInfo->second.has_user == false) {
+        goto done;
+    }
+
+    itAdmin = _admins.find(node_num);
+    if (itAdmin != _admins.end()) {
+        if ((itNodeInfo->second.user.public_key.size ==
+             itAdmin->second.size) &&
+            (memcmp(itNodeInfo->second.user.public_key.bytes,
+                    itAdmin->second.bytes, itAdmin->second.size) == 0)) {
+            isAdmin = true;
+        }
+    }
+
+    itMate = _mates.find(node_num);
+    if (itMate != _mates.end()) {
+        if ((itNodeInfo->second.user.public_key.size ==
+             itMate->second.size) &&
+            (memcmp(itNodeInfo->second.user.public_key.bytes,
+                    itMate->second.bytes, itMate->second.size) == 0)) {
+            isMate = true;
+        }
+    }
+
+done:
+
+    return (isAdmin || isMate);
 }
 
 void HomeChat::setLastMessageFrom(uint32_t node_num, const string &message)
@@ -223,6 +385,28 @@ string HomeChat::getLastMessageFrom(uint32_t node_num) const
     }
 
     return s;
+}
+
+string HomeChat::handleRollcall(uint32_t node_num, const string &message)
+{
+    string reply;
+
+    (void)(node_num);
+    (void)(message);
+
+    reply = _client->lookupLongName(node_num) + ", " +
+        _client->lookupLongName(_client->whoami()) +
+        " is at your service";
+
+    return reply;
+}
+
+string HomeChat::handleMeshAuth(uint32_t node_num, const string &message)
+{
+    (void)(node_num);
+    (void)(message);
+
+    return string();
 }
 
 string HomeChat::handleUptime(uint32_t node_num, const string &message)
@@ -319,22 +503,79 @@ string HomeChat::handleNodes(uint32_t node_num, const string &message)
 
 string HomeChat::handleMeshStats(uint32_t node_num, const string &message)
 {
-    string reply;
+    stringstream ss;
+    map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev;
 
     (void)(node_num);
     (void)(message);
 
-    reply = "direct messages (sent/recv): ";
-    reply += to_string(_client->dmTx());
-    reply += "/";
-    reply += to_string(_client->dmRx());
-    reply += "\n";
-    reply += "channel messages (sent/recv): ";
-    reply += to_string(_client->cmTx());
-    reply += "/";
-    reply += to_string(_client->cmRx());
+    ss << "direct messages (sent/recv): "
+       << to_string(_client->dmTx()) << "/" << to_string(_client->dmRx())
+       << endl;
+    ss << "channel messages (sent/recv): "
+       << to_string(_client->cmTx()) << "/" << to_string(_client->cmRx());
 
-    return reply;
+    dev = _client->deviceMetrics().find(_client->whoami());
+    if (dev != _client->deviceMetrics().end()) {
+        if (dev->second.has_channel_utilization) {
+            ss << endl << "channel_utilization: "
+               << setprecision(3) << dev->second.channel_utilization << "%";
+        }
+        if (dev->second.has_air_util_tx) {
+            ss << endl << "air_util_tx: "
+               << setprecision(3) << dev->second.air_util_tx << "%";
+        }
+    }
+
+    return ss.str();
+}
+
+string HomeChat::handleAuthchans(uint32_t node_num, const string &message)
+{
+    stringstream ss;
+
+    (void)(node_num);
+    (void)(message);
+
+    ss << "list of authchans:";
+    for (map<string, meshtastic_ChannelSettings_psk_t>::const_iterator it =
+             _authchans.begin(); it != _authchans.end(); it++) {
+        ss << endl << "  " << it->first;
+    }
+
+    return ss.str();
+}
+
+string HomeChat::handleAdmins(uint32_t node_num, const string &message)
+{
+    stringstream ss;
+
+    (void)(node_num);
+    (void)(message);
+
+    ss << "list of admins:";
+    for (map<uint32_t, meshtastic_User_public_key_t>::const_iterator it =
+             _admins.begin(); it != _admins.end(); it++) {
+        ss << endl << "  " << _client->getDisplayName(it->first);
+    }
+
+    return ss.str();
+}
+
+string HomeChat::handleMates(uint32_t node_num, const string &message)
+{
+    stringstream ss;
+
+    (void)(node_num);
+    (void)(message);
+
+    ss << "list of mates:";
+    for (map<uint32_t, meshtastic_User_public_key_t>::const_iterator it =
+             _mates.begin(); it != _mates.end(); it++) {
+        ss << endl << "  " << _client->getDisplayName(it->first);
+    }
+
+    return ss.str();
 }
 
 string HomeChat::handleStatus(uint32_t node_num, const string &message)

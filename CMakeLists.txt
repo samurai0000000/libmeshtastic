@@ -30,6 +30,7 @@ if (DEFINED PICO_PLATFORM)
     ${CMAKE_CURRENT_SOURCE_DIR}/protocol.c
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
     )
 else ()
   set(LIBMESHTASTIC_SRCS
@@ -39,6 +40,7 @@ else ()
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
     )
 endif ()
 
