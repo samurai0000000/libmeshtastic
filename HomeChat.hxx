@@ -10,9 +10,15 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <vector>
 #include <SimpleClient.hxx>
 
 using namespace std;
+
+struct vprintf_callback {
+    void *ctx;
+    int (*vprintf)(void *ctx, const char *format, va_list ap);
+};
 
 class HomeChat {
 
@@ -22,6 +28,9 @@ public:
     ~HomeChat();
 
     virtual void setClient(shared_ptr<SimpleClient> client);
+
+    void addPrintfCallback(const struct vprintf_callback &cb);
+    void delPrintfCallback(const struct vprintf_callback &cb);
 
     virtual void clearAuthchansAdminsMates(void);
     virtual bool addAuthChannel(const string &channel,
@@ -70,6 +79,8 @@ protected:
     map<string, meshtastic_ChannelSettings_psk_t> _authchans;
     map<uint32_t, meshtastic_User_public_key_t> _admins;
     map<uint32_t, meshtastic_User_public_key_t> _mates;
+
+    vector<struct vprintf_callback> _vpfcb;
 
 };
 

@@ -77,7 +77,12 @@ private:
     static void thread_function(MeshShell *ms);
     void run(void);
 
+    static int ctx_vprintf(void *ctx, const char *format, va_list ap);
+    int vprintf(const char *format, va_list ap);
+
 private:
+
+    time_t _since;
 
     shared_ptr<thread> _thread;
     mutex _mutex;

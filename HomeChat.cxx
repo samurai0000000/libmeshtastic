@@ -31,6 +31,25 @@ void HomeChat::setClient(shared_ptr<SimpleClient> client)
     _client = client;
 }
 
+static bool operator==(const struct vprintf_callback &lhs,
+                       const struct vprintf_callback &rhs)
+{
+    return (lhs.ctx == rhs.ctx) && (lhs.vprintf == rhs.vprintf);
+}
+
+void HomeChat::addPrintfCallback(const struct vprintf_callback &cb)
+{
+    if ((cb.ctx != NULL) && (cb.vprintf != NULL) &&
+        (find(_vpfcb.begin(), _vpfcb.end(), cb) == _vpfcb.end())) {
+        _vpfcb.push_back(cb);
+    }
+}
+
+void HomeChat::delPrintfCallback(const struct vprintf_callback &cb)
+{
+    _vpfcb.erase(remove(_vpfcb.begin(), _vpfcb.end(), cb), _vpfcb.end());
+}
+
 void HomeChat::clearAuthchansAdminsMates(void)
 {
     _authchans.clear();
@@ -597,6 +616,10 @@ int HomeChat::printf(const char *format, ...) const
 
     va_start(ap, format);
     ret = this->vprintf(format, ap);
+    for (vector<struct vprintf_callback>::const_iterator it = _vpfcb.begin();
+         it != _vpfcb.end(); it++) {
+        it->vprintf(it->ctx, format, ap);
+    }
     va_end(ap);
 
     return ret;

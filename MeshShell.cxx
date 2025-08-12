@@ -21,6 +21,7 @@
 
 MeshShell::MeshShell(shared_ptr<MeshClient> client)
 {
+    _since = time(NULL);
     setClient(client);
     _fd = -1;
     _port = 0;
@@ -28,12 +29,31 @@ MeshShell::MeshShell(shared_ptr<MeshClient> client)
 
 MeshShell::~MeshShell()
 {
-
+    if (_client != NULL) {
+        HomeChat *hc = _client->getHomeChat();
+        if (hc) {
+            struct vprintf_callback cb = {
+                .ctx = this,
+                .vprintf = ctx_vprintf,
+            };
+            hc->delPrintfCallback(cb);
+        }
+    }
 }
 
 void MeshShell::setClient(shared_ptr<MeshClient> client)
 {
     _client = client;
+    if (_client != NULL) {
+        HomeChat *hc = _client->getHomeChat();
+        if (hc) {
+            struct vprintf_callback cb = {
+                .ctx = this,
+                .vprintf = ctx_vprintf,
+            };
+            hc->addPrintfCallback(cb);
+        }
+    }
 }
 
 void MeshShell::setNVM(shared_ptr<MeshNVM > nvm)
@@ -92,6 +112,17 @@ bool MeshShell::attachStdio(void)
     _thread = make_shared<thread>(thread_function, this);
     result = true;
 
+    if (_client != NULL) {
+        HomeChat *hc = _client->getHomeChat();
+        if (hc) {
+            struct vprintf_callback cb = {
+                .ctx = this,
+                .vprintf = ctx_vprintf,
+            };
+            hc->delPrintfCallback(cb);
+        }
+    }
+
 done:
 
     return result;
@@ -129,6 +160,7 @@ bool MeshShell::bindPort(uint16_t port)
 
     _fd = socket(AF_INET, SOCK_STREAM, 0);
     if (_fd == -1) {
+        cerr << "socket: " << strerror(errno) << endl;
         result = false;
         goto done;
     }
@@ -142,6 +174,7 @@ bool MeshShell::bindPort(uint16_t port)
 
     ret = bind(_fd, (struct sockaddr *) &serveraddr, sizeof(serveraddr));
     if (ret == -1) {
+        cerr << "bind: " << strerror(errno) << endl;
         result = false;
         close(_fd);
         _fd = -1;
@@ -150,6 +183,7 @@ bool MeshShell::bindPort(uint16_t port)
 
     ret = listen(_fd, 5);
     if (ret == -1) {
+        cerr << "listen: " << strerror(errno) << endl;
         result = false;
         close(_fd);
         _fd = -1;
@@ -378,17 +412,56 @@ void MeshShell::run(void)
     }
 }
 
+int MeshShell::ctx_vprintf(void *ctx, const char *format, va_list ap)
+{
+    MeshShell *ms = (MeshShell *) ctx;
+
+    if (ms == NULL) {
+        return -1;
+    }
+
+    return ms->vprintf(format, ap);
+}
+
+int MeshShell::vprintf(const char *format, va_list ap)
+{
+    int ret = 0;
+    size_t len = 0;
+    char pbuf[1024];
+
+    if (format == NULL) {
+        goto done;
+    }
+
+    ret = vsnprintf(pbuf, sizeof(pbuf) - 1, format, ap);
+    if (ret <= 0) {
+        goto done;
+    }
+
+    len = (size_t) ret;
+
+    while (len > 0) {
+        ret = write(_fd, pbuf, len);
+        if (ret == -1) {
+            break;
+        }
+
+        len -= (size_t) ret;
+    }
+
+done:
+
+    return ret;
+}
+
 int MeshShell::printf(const char *format, ...)
 {
     int ret = 0;
     va_list ap;
-    char pbuf[1024];
 
     va_start(ap, format);
-    ret = vsnprintf(pbuf, sizeof(pbuf) - 1, format, ap);
+    ret = this->vprintf(format, ap);
     va_end(ap);
-
-    ret = write(_fd, pbuf, (size_t) ret);
 
     return ret;
 }
@@ -532,7 +605,8 @@ int MeshShell::version(int argc, char **argv)
 
     (void)(argc);
     (void)(argv);
-    this->printf("not implemented\n");
+    this->printf("%s\n", _version.c_str());
+    this->printf("%s\n", _built.c_str());
 
     return ret;
 }
@@ -540,10 +614,23 @@ int MeshShell::version(int argc, char **argv)
 int MeshShell::system(int argc, char **argv)
 {
     int ret = 0;
+    time_t now;
+    unsigned int uptime, days, hour, min, sec;
 
     (void)(argc);
     (void)(argv);
-    this->printf("not implemented\n");
+
+    now = time(NULL);
+    uptime = now - _since;
+    sec = (uptime % 60);
+    min = (uptime / 60) % 60;
+    hour = (uptime / 3600) % 24;
+    days = (uptime) / 86400;
+    if (days == 0) {
+        this->printf("   Up-time: %.2u:%.2u:%.2u\n", hour, min, sec);
+    } else {
+        this->printf("   Up-time: %ud %.2u:%.2u:%.2u\n", days, hour, min, sec);
+    }
 
     return ret;
 }
