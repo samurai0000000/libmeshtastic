@@ -230,6 +230,10 @@ void MeshShell::run(void)
     }
 
     if (!binder) {
+        this->printf("%s\n", _banner.c_str());
+        this->printf("%s\n", _version.c_str());
+        this->printf("----------------------------------------------------\n");
+        this->printf("%s\n", _copyright.c_str());
         this->printf("> ");
     }
 
@@ -296,6 +300,11 @@ void MeshShell::run(void)
 
             clientShell = make_shared<MeshShell>();
             clientShell->setClient(_client);
+            clientShell->setNVM(_nvm);
+            clientShell->setBanner(_banner);
+            clientShell->setVersion(_version);
+            clientShell->setBuilt(_built);
+            clientShell->setCopyright(_copyright);
             clientShell->attachFd(client_fd);
 
             _children.push_back(clientShell);

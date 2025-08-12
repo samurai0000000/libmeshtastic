@@ -45,7 +45,7 @@ bool MeshNVM::setupFor(uint32_t node_num)
     }
 
     snprintf(node_num_hex, sizeof(node_num_hex) - 1, "%.8x", node_num);
-    path = home + "/.meshmon." + node_num_hex;
+    path = home + "/.libmeshtastic." + node_num_hex;
 
     // 'touch' to test the path validity
     fd = open(path.c_str(),

@@ -27,6 +27,19 @@ public:
     MeshShell(shared_ptr<MeshClient> client = NULL);
     ~MeshShell();
 
+    void setBanner(const string &banner) {
+        _banner = banner;
+    }
+    void setVersion(const string &version) {
+        _version = version;
+    }
+    void setBuilt(const string &built) {
+        _built = built;
+    }
+    void setCopyright(const string &copyright) {
+        _copyright = copyright;
+    }
+
     virtual void setClient(shared_ptr<MeshClient> client);
     virtual void setNVM(shared_ptr<MeshNVM> nvm);
 
@@ -69,6 +82,11 @@ private:
     shared_ptr<thread> _thread;
     mutex _mutex;
     bool _isRunning;
+
+    string _banner;
+    string _version;
+    string _built;
+    string _copyright;
 
     int _fd;
     int _outfd;
