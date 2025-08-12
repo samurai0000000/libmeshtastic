@@ -223,8 +223,12 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     // check for authority
     if ((directMessage || addressed2Me) && !isAuthorized(packet.from)) {
         if (first_word != "all") {
-            reply = _client->lookupShortName(packet.from) +
-                ", you are not authorized to speak to me!";
+            if (message != getLastMessageFrom(packet.from)) {
+                reply = _client->lookupShortName(packet.from) +
+                    ", you are not authorized to speak to me!";
+            } else {
+                reply = "";  // don't be repetitive
+            }
         } else {
             reply = "";  // mute if 'all' was the target
         }

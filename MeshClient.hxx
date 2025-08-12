@@ -18,6 +18,8 @@
 
 using namespace std;
 
+class HomeChat;
+
 /*
  * Suitable for use on a full system with OS (x86, aarch64, etc.)
  */
@@ -173,6 +175,10 @@ public:
 
     inline const meshtastic_ModuleConfig_PaxcounterConfig &modPaxcounter(void) const {
         return _modPaxcounter;
+    }
+
+    inline virtual HomeChat *getHomeChat(void) {
+        return NULL;
     }
 
 protected:

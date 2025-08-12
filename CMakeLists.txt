@@ -33,6 +33,10 @@ if (DEFINED PICO_PLATFORM)
     ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
     )
 else ()
+  FIND_PACKAGE(config++ QUIET)
+  if (NOT config++_FOUND)
+    find_library(CONFIG++_LIBRARY NAMES config++)
+  endif ()
   set(LIBMESHTASTIC_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/serial-posix.c
     ${CMAKE_CURRENT_SOURCE_DIR}/protocol.c
@@ -41,6 +45,8 @@ else ()
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshNVM.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshShell.cxx
     )
 endif ()
 
@@ -54,13 +60,13 @@ target_sources(libmeshtastic INTERFACE
   ${ARDUINO_SRCS}
   )
 
-if (NOT DEFINED PICO_PLATFORM)
+if (NOT DEFINED PICO_PLATFORM AND NOT CONFIG++_LIBRARY-NOTFOUND)
   add_executable(mynodeid sample/mynodeid.c)
-  target_link_libraries(mynodeid PUBLIC libmeshtastic)
+  target_link_libraries(mynodeid PUBLIC libmeshtastic ${CONFIG++_LIBRARY})
 
   add_executable(nodelisten sample/nodelisten.c)
-  target_link_libraries(nodelisten PUBLIC libmeshtastic)
+  target_link_libraries(nodelisten PUBLIC libmeshtastic ${CONFIG++_LIBRARY})
 
   add_executable(nodereboot sample/nodereboot.c)
-  target_link_libraries(nodereboot PUBLIC libmeshtastic)
+  target_link_libraries(nodereboot PUBLIC libmeshtastic ${CONFIG++_LIBRARY})
 endif ()
