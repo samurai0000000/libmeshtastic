@@ -80,6 +80,10 @@ int mt_recv_packet(struct mt_client *mtc, uint8_t *packet, size_t size)
         goto done;
     }
 
+    mtc->bytes_rx += (sizeof(*header) + mt_pb_len);
+    mtc->packets_rx++;
+    mtc->last_packet_ts = mt_impl_now();
+
     if (mtc->handler) {
         mtc->handler(mtc, packet, size, &from_radio);
     }
@@ -135,6 +139,11 @@ static int mt_send_to_radio(struct mt_client *mtc,
         errno = EBADF;
         ret = -1;
         break;
+    }
+
+    if (ret == 0) {
+        mtc->bytes_tx += (sizeof(*header) + ostream.bytes_written);
+        mtc->packets_tx++;
     }
 
 done:

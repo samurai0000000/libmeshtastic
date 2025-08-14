@@ -25,6 +25,7 @@
 
 EXTERN_C_BEGIN
 
+#include <time.h>
 #include <meshtastic/mesh.pb.h>
 #include <meshtastic/admin.pb.h>
 #include <meshtastic/mqtt.pb.h>
@@ -52,6 +53,11 @@ struct mt_client
                     const meshtastic_FromRadio *from_radio);
     void (*logger)(struct mt_client *mtc, const char *msg, size_t len);
     void *ctx;
+    uint32_t bytes_rx;
+    uint32_t bytes_tx;
+    uint32_t packets_rx;
+    uint32_t packets_tx;
+    uint32_t last_packet_ts;
 };
 
 #if defined(LIB_PICO_PLATFORM)
@@ -81,6 +87,8 @@ extern int mt_admin_message_device_metadata_request(
     struct mt_client *mtc);
 extern int mt_admin_message_reboot(struct mt_client *mtc,
                                    uint32_t seconds);
+
+extern time_t mt_impl_now(void);
 
 EXTERN_C_END
 

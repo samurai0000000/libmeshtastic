@@ -263,6 +263,9 @@ bool SimpleClient::sendWantConfig(void)
     bool result = false;
 
     result = (mt_send_want_config(&_mtc) == 0);
+    if (result) {
+        _countWantConfigs++;
+    }
 
     return result;
 }
@@ -272,6 +275,9 @@ bool SimpleClient::sendHeartbeat(void)
     bool result = false;
 
     result = (mt_send_heartbeat(&_mtc) == 0);
+    if (result) {
+        _countHeartbeats++;
+    }
 
     return result;
 }
@@ -352,6 +358,10 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
             }
         }
 #endif
+    }
+
+    if (result) {
+        _countTextMessages++;
     }
 
     return result;
@@ -612,6 +622,31 @@ void SimpleClient::gotTraceRoute(const meshtastic_MeshPacket &packet,
 {
     (void)(packet);
     (void)(routeDiscovery);
+}
+
+uint32_t SimpleClient::meshDeviceBytesReceived(void) const
+{
+    return _mtc.bytes_rx;
+}
+
+uint32_t SimpleClient::meshDeviceBytesSent(void) const
+{
+    return _mtc.bytes_tx;
+}
+
+uint32_t SimpleClient::meshDevicePacketsReceived(void) const
+{
+    return _mtc.packets_rx;
+}
+
+uint32_t SimpleClient::meshDevicePacketsSent(void) const
+{
+    return _mtc.packets_tx;
+}
+
+uint32_t SimpleClient::meshDeviceLastRecivedSecondsAgo(void) const
+{
+    return (uint32_t) (mt_impl_now() - _mtc.last_packet_ts);
 }
 
 /*

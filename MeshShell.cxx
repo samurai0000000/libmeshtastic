@@ -649,81 +649,92 @@ int MeshShell::reboot(int argc, char **argv)
 int MeshShell::status(int argc, char **argv)
 {
     int ret = 0;
+    unsigned int i;
+    map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev;
+    map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env;
 
     (void)(argc);
     (void)(argv);
 
     if (!_client->isConnected()) {
         this->printf("Not connected\n");
-    } else {
-        unsigned int i;
+        goto done;
+    }
 
-        this->printf("Me: %s %s\n",
-                     _client->getDisplayName(_client->whoami()).c_str(),
-                     _client->lookupLongName(_client->whoami()).c_str());
+    this->printf("Me: %s %s\n",
+                 _client->getDisplayName(_client->whoami()).c_str(),
+                 _client->lookupLongName(_client->whoami()).c_str());
 
-        this->printf("Channels: %d\n",
-                     _client->channels().size());
-        for (map<uint8_t, meshtastic_Channel>::const_iterator it =
-                 _client->channels().begin();
-             it != _client->channels().end(); it++) {
-            if (it->second.has_settings &&
-                it->second.role != meshtastic_Channel_Role_DISABLED) {
-                this->printf("chan#%u: %s\n",
-                             (unsigned int) it->second.index,
-                             it->second.settings.name);
-            }
-        }
-
-        this->printf("Nodes: %d seen\n",
-                     _client->nodeInfos().size());
-        i = 0;
-        for (map<uint32_t, meshtastic_NodeInfo>::const_iterator it =
-                 _client->nodeInfos().begin();
-             it != _client->nodeInfos().end(); it++, i++) {
-            if ((i % 4) == 0) {
-                this->printf("  ");
-            }
-            this->printf("%16s  ",
-                         _client->getDisplayName(it->second.num).c_str());
-            if ((i % 4) == 3) {
-                this->printf("\n");
-            }
-        }
-        if ((i % 4) != 0) {
-            this->printf("\n");
-        }
-
-        map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev;
-        dev = _client->deviceMetrics().find(_client->whoami());
-        if (dev != _client->deviceMetrics().end()) {
-            if (dev->second.has_channel_utilization) {
-                this->printf("channel_utilization: %.2f\n",
-                             dev->second.channel_utilization);
-            }
-            if (dev->second.has_air_util_tx) {
-                this->printf("air_util_tx: %.2f\n",
-                             dev->second.air_util_tx);
-            }
-        }
-
-        map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env;
-        env = _client->environmentMetrics().find(_client->whoami());
-        if (env != _client->environmentMetrics().end()) {
-            if (env->second.has_temperature) {
-                this->printf("temperature: %.2f\n",
-                             env->second.temperature);
-            }
-            if (env->second.has_relative_humidity) {
-                this->printf("relative_humidity: %.2f\n",
-                             env->second.relative_humidity);
-            }
-            if (env->second.has_barometric_pressure) {
-                this->printf("barometric_pressure: %.2f\n",
-                             env->second.barometric_pressure);
-            }
+    this->printf("Channels: %d\n",
+                 _client->channels().size());
+    for (map<uint8_t, meshtastic_Channel>::const_iterator it =
+             _client->channels().begin();
+         it != _client->channels().end(); it++) {
+        if (it->second.has_settings &&
+            it->second.role != meshtastic_Channel_Role_DISABLED) {
+            this->printf("chan#%u: %s\n",
+                         (unsigned int) it->second.index,
+                         it->second.settings.name);
         }
     }
+
+    this->printf("Nodes: %d seen\n",
+                 _client->nodeInfos().size());
+    i = 0;
+    for (map<uint32_t, meshtastic_NodeInfo>::const_iterator it =
+             _client->nodeInfos().begin();
+         it != _client->nodeInfos().end(); it++, i++) {
+        if ((i % 4) == 0) {
+            this->printf("  ");
+        }
+        this->printf("%16s  ",
+                     _client->getDisplayName(it->second.num).c_str());
+        if ((i % 4) == 3) {
+            this->printf("\n");
+        }
+    }
+    if ((i % 4) != 0) {
+        this->printf("\n");
+    }
+
+    dev = _client->deviceMetrics().find(_client->whoami());
+    if (dev != _client->deviceMetrics().end()) {
+        if (dev->second.has_channel_utilization) {
+            this->printf("channel_utilization: %.2f\n",
+                         dev->second.channel_utilization);
+        }
+        if (dev->second.has_air_util_tx) {
+            this->printf("air_util_tx: %.2f\n",
+                         dev->second.air_util_tx);
+        }
+    }
+
+    env = _client->environmentMetrics().find(_client->whoami());
+    if (env != _client->environmentMetrics().end()) {
+        if (env->second.has_temperature) {
+            this->printf("temperature: %.2f\n",
+                         env->second.temperature);
+        }
+        if (env->second.has_relative_humidity) {
+            this->printf("relative_humidity: %.2f\n",
+                         env->second.relative_humidity);
+        }
+        if (env->second.has_barometric_pressure) {
+            this->printf("barometric_pressure: %.2f\n",
+                         env->second.barometric_pressure);
+        }
+    }
+
+    this->printf("mesh bytes (rx/tx): %u/%u\n",
+                 _client->meshDeviceBytesReceived(),
+                 _client->meshDeviceBytesSent());
+    this->printf("mesh packets (rx/tx): %u/%u\n",
+                 _client->meshDevicePacketsReceived(),
+                 _client->meshDevicePacketsSent());
+    this->printf("last mesh packet: %us ago\n",
+                 _client->meshDeviceLastRecivedSecondsAgo());
+
+done:
 
     return ret;
 }

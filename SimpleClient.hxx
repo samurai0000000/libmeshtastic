@@ -180,30 +180,55 @@ public:
         _dmTx = 0;
         _cmRx = 0;
         _cmTx = 0;
+        _countWantConfigs = 0;
+        _countHeartbeats = 0;
+        _countTextMessages = 0;
     }
 
-    inline unsigned int dmRx(void) const {
+    uint32_t meshDeviceBytesReceived(void) const;
+    uint32_t meshDeviceBytesSent(void) const;
+    uint32_t meshDevicePacketsReceived(void) const;
+    uint32_t meshDevicePacketsSent(void) const;
+    uint32_t meshDeviceLastRecivedSecondsAgo(void) const;
+
+    inline uint32_t dmRx(void) const {
         return _dmRx;
     }
 
-    inline unsigned int dmTx(void) const {
+    inline uint32_t dmTx(void) const {
         return _dmTx;
     }
 
-    inline unsigned int cmRx(void) const {
+    inline uint32_t cmRx(void) const {
         return _cmRx;
     }
 
-    inline unsigned int cmTx(void) const {
+    inline uint32_t cmTx(void) const {
         return _cmTx;
+    }
+
+    inline uint32_t countWantConfigs(void) const {
+        return _countWantConfigs;
+    }
+
+    inline uint32_t countHearbeats(void) const {
+        return _countHeartbeats;
+    }
+
+    inline uint32_t countTextMessages(void) const {
+        return _countTextMessages;
     }
 
 protected:
 
-    unsigned int _dmRx;
-    unsigned int _dmTx;
-    unsigned int _cmRx;
-    unsigned int _cmTx;
+    uint32_t _dmRx;
+    uint32_t _dmTx;
+    uint32_t _cmRx;
+    uint32_t _cmTx;
+
+    uint32_t _countWantConfigs;
+    uint32_t _countHeartbeats;
+    uint32_t _countTextMessages;
 
 };
 

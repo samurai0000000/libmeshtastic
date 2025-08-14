@@ -138,6 +138,11 @@ done:
     return ret;
 }
 
+time_t mt_impl_now(void)
+{
+    return time(NULL);
+}
+
 /*
  * Local variables:
  * mode: C
