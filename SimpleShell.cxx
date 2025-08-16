@@ -10,6 +10,7 @@ SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
 {
     setClient(client);
     _nvm = NULL;
+    _noEcho = false;
     _ctx = NULL;
     _inproc.i = 0;
     _since = time(NULL);
@@ -49,15 +50,42 @@ int SimpleShell::process(void)
 
     while (this->rx_ready() > 0) {
         rx = this->rx_read((uint8_t *) &c, 1);
-        if (rx == 0) {
+        if (rx < 0) {
+            ret = rx;
+            break;
+        } else if (rx == 0) {
             break;
         }
 
         ret += rx;
 
+        if (c == 0xff) {  // IAC received
+            static const uint8_t iac_do_tm[3] = { 0xff, 0xfd, 0x06};
+            static const uint8_t iac_will_tm[3] = { 0xff, 0xfb, 0x06};
+            char iac2;
+
+            ret = this->rx_read((uint8_t *) &iac2, 1);
+            if (ret == 1) {
+                switch (iac2) {
+                case 0xf4:  // IAC IP (interrupt process)
+                    ret = this->tx_write(iac_do_tm, sizeof(iac_do_tm));
+                    ret = this->tx_write(iac_will_tm, sizeof(iac_will_tm));
+                    this->printf("\n> ");
+                    _inproc.i = 0;
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            continue;
+        }
+
         if (c == '\r') {
             _inproc.cmdline[_inproc.i] = '\0';
-            this->printf("\n");
+            if (!_noEcho) {
+                this->printf("\n");
+            }
             this->exec(_inproc.cmdline);
             this->printf("> ");
             _inproc.i = 0;
@@ -72,7 +100,9 @@ int SimpleShell::process(void)
             _inproc.i = 0;
         } else if ((c != '\n') && isprint(c)) {
             if (_inproc.i < (CMDLINE_SIZE - 1)) {
-                this->printf("%c", c);
+                if (!_noEcho) {
+                    this->printf("%c", c);
+                }
                 _inproc.cmdline[_inproc.i] = c;
                 _inproc.i++;
             }
@@ -80,6 +110,13 @@ int SimpleShell::process(void)
     }
 
     return ret;
+}
+
+int SimpleShell::tx_write(const uint8_t *buf, size_t size)
+{
+    (void)(buf);
+    (void)(size);
+    return 0;
 }
 
 int SimpleShell::printf(const char *format, ...)
@@ -618,6 +655,48 @@ int SimpleShell::unknown_command(int argc, char **argv)
     this->printf("Unknown command '%s'!\n", argv[0]);
 
     return -1;
+}
+
+int SimpleShell::ctx_vprintf(void *ctx, const char *format, va_list ap)
+{
+    SimpleShell *ss = (SimpleShell *) ctx;
+
+    if (ss == NULL) {
+        return -1;
+    }
+
+    return ss->vprintf(format, ap);
+}
+
+int SimpleShell::vprintf(const char *format, va_list ap)
+{
+    int ret = 0;
+    size_t len = 0;
+    char pbuf[1024];
+
+    if (format == NULL) {
+        goto done;
+    }
+
+    ret = vsnprintf(pbuf, sizeof(pbuf) - 1, format, ap);
+    if (ret <= 0) {
+        goto done;
+    }
+
+    len = (size_t) ret;
+
+    while (len > 0) {
+        ret = tx_write((const uint8_t *) pbuf, len);
+        if (ret == -1) {
+            break;
+        }
+
+        len -= (size_t) ret;
+    }
+
+done:
+
+    return ret;
 }
 
 /*

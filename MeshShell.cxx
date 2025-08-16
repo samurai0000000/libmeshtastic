@@ -352,12 +352,12 @@ void MeshShell::run(void)
             if (ret == -1) {
                 _isRunning = false;
                 break;  // File descriptor error
-            } else if (ret == -1) {
+            } else if (ret == 0) {
                 _isRunning = false;
                 break;  // EOF
             }
 
-            if (netClient & (c == 0xff)) {  // IAC received
+            if (c == 0xff) {  // IAC received
                 static const uint8_t iac_do_tm[3] = { 0xff, 0xfd, 0x06};
                 static const uint8_t iac_will_tm[3] = { 0xff, 0xfb, 0x06};
                 char iac2;

@@ -50,8 +50,21 @@ public:
     virtual void setClient(shared_ptr<SimpleClient> client);
     virtual void setNVM(shared_ptr<BaseNVM> nvm);
 
-    inline virtual void attach(void *ctx) {
+    inline void setNoEcho(bool noEcho) {
+        _noEcho = noEcho;
+    }
+
+    inline virtual void attach(void *ctx, bool showWelcome = false) {
         _ctx = ctx;
+        if (showWelcome) {
+            this->printf("\n\x1b[2K");
+            this->printf("%s\n", _banner.c_str());
+            this->printf("%s\n", _version.c_str());
+            this->printf("%s\n", _built.c_str());
+            this->printf("-------------------------------------------\n");
+            this->printf("%s\n", _copyright.c_str());
+            this->printf("> ");
+        }
     }
     inline virtual void detach(void) {
         _ctx = NULL;
@@ -64,6 +77,7 @@ protected:
     shared_ptr<SimpleClient> _client;
     shared_ptr<BaseNVM> _nvm;
 
+    virtual int tx_write(const uint8_t *buf, size_t size);
     virtual int printf(const char *format, ...);
     virtual int rx_ready(void) const;
     virtual int rx_read(uint8_t *buf, size_t size);
@@ -96,6 +110,7 @@ protected:
 #define CMDLINE_SIZE 256
 
     void *_ctx;
+    bool _noEcho;
 
     struct inproc {
         char cmdline[CMDLINE_SIZE];
@@ -103,6 +118,15 @@ protected:
     };
 
     struct inproc _inproc;
+
+public:
+
+    static int ctx_vprintf(void *ctx, const char *format, va_list ap);
+
+private:
+
+    int vprintf(const char *format, va_list ap);
+
 };
 
 #endif
