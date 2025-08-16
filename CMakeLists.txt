@@ -31,6 +31,7 @@ if (DEFINED PICO_PLATFORM)
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/SimpleShell.cxx
     )
 else ()
   FIND_PACKAGE(config++ QUIET)
@@ -46,6 +47,7 @@ else ()
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshNVM.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/SimpleShell.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshShell.cxx
     )
 endif ()
