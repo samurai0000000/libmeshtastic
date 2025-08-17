@@ -52,7 +52,8 @@ public:
 
 protected:
 
-    virtual bool isAuthorized(uint32_t node_num) const;
+    virtual void getAuthority(uint32_t node_num,
+                              bool &isAdmin, bool &isMate) const;
     virtual void setLastMessageFrom(uint32_t node_num, const string &message);
     virtual string getLastMessageFrom(uint32_t node_num) const;
 
@@ -66,6 +67,8 @@ protected:
     virtual string handleAdmins(uint32_t node_num, const string &message);
     virtual string handleMates(uint32_t node_num, const string &message);
     virtual string handleStatus(uint32_t node_num, const string &message);
+    virtual string handleUnknown(uint32_t node_num, const string &message,
+                                 bool isAdmin, bool isMate);
 
     virtual int printf(const char *format, ...) const;
     virtual int vprintf(const char *format, va_list ap) const;

@@ -463,9 +463,8 @@ int SimpleShell::authchan(int argc, char **argv)
     bool result;
 
     if (argc == 1) {
-        this->printf("list of authchans:\n");
         for (unsigned int i = 0; i < _nvm->nvmAuthchans().size(); i++) {
-            this->printf("  %s\n", _nvm->nvmAuthchans()[i].name);
+            this->printf("%s\n", _nvm->nvmAuthchans()[i].name);
         }
     } else if ((argc == 3) && strcmp(argv[1], "add") == 0) {
         result = _nvm->addNvmAuthChannel(argv[2], *_client);
@@ -515,13 +514,9 @@ int SimpleShell::admin(int argc, char **argv)
 
     if (argc == 1) {
         unsigned int i;
-        this->printf("list of admins:\n");
         for (i = 0; i < _nvm->nvmAdmins().size(); i++) {
             uint32_t node_num = _nvm->nvmAdmins()[i].node_num;
-            if ((i % 4) == 0) {
-                this->printf("  ");
-            }
-            this->printf("%16s  ",
+            this->printf("%16s ",
                          _client->getDisplayName(node_num).c_str());
             if ((i % 4) == 3) {
                 this->printf("\n");
@@ -578,13 +573,9 @@ int SimpleShell::mate(int argc, char **argv)
 
     if (argc == 1) {
         unsigned int i;
-        this->printf("list of mates:\n");
         for (i = 0; i < _nvm->nvmMates().size(); i++) {
             uint32_t node_num = _nvm->nvmMates()[i].node_num;
-            if ((i % 4) == 0) {
-                this->printf("  ");
-            }
-            this->printf("%16s  ",
+            this->printf("%16s ",
                          _client->getDisplayName(node_num).c_str());
             if ((i % 4) == 3) {
                 this->printf("\n");
@@ -641,8 +632,11 @@ int SimpleShell::nvm(int argc, char **argv)
         return -1;
     }
 
+    this->printf("authchans:\n");
     authchan(argc, argv);
+    this->printf("admins:\n");
     admin(argc, argv);
+    this->printf("mates:\n");
     mate(argc, argv);
 
     return 0;

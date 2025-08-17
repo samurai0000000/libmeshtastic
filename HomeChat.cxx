@@ -170,6 +170,8 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     string reply;
     uint32_t dest = 0xffffffffU;
     uint8_t channel = 0xffU;
+    bool isAdmin = false;
+    bool isMate = false;
 
     if (_client == NULL) {
         goto done;
@@ -232,15 +234,16 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
                               }).base(), message.end());
     }
 
+    getAuthority(packet.from, isAdmin, isMate);
+
     // rollcall on channel
-    if (channelMessage && (first_word == "rollcall") &&
-        isAuthorized(packet.from)) {
+    if (channelMessage && (first_word == "rollcall") && (isAdmin || isMate)) {
         reply = handleRollcall(packet.from, message);
         goto done;
     }
 
     // check for authority
-    if ((directMessage || addressed2Me) && !isAuthorized(packet.from)) {
+    if ((directMessage || addressed2Me) && !isAdmin && !isMate) {
         if (first_word != "all") {
             if (message != getLastMessageFrom(packet.from)) {
                 reply = _client->lookupShortName(packet.from) +
@@ -333,6 +336,8 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
+    reply = handleUnknown(packet.from, message, isAdmin, isMate);
+
 done:
 
     setLastMessageFrom(packet.from, message);
@@ -352,13 +357,15 @@ done:
     return result;
 }
 
-bool HomeChat::isAuthorized(uint32_t node_num) const
+void HomeChat::getAuthority(uint32_t node_num,
+                            bool &isAdmin, bool &isMate) const
 {
-    bool isAdmin = false;
-    bool isMate = false;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator itNodeInfo;
     map<uint32_t, meshtastic_User_public_key_t>::const_iterator itAdmin;
     map<uint32_t, meshtastic_User_public_key_t>::const_iterator itMate;
+
+    isAdmin = false;
+    isMate = false;
 
     itNodeInfo = _client->nodeInfos().find(node_num);
     if (itNodeInfo == _client->nodeInfos().end()) {
@@ -389,7 +396,7 @@ bool HomeChat::isAuthorized(uint32_t node_num) const
 
 done:
 
-    return (isAdmin || isMate);
+    return;
 }
 
 void HomeChat::setLastMessageFrom(uint32_t node_num, const string &message)
@@ -605,6 +612,17 @@ string HomeChat::handleStatus(uint32_t node_num, const string &message)
 {
     (void)(node_num);
     (void)(message);
+
+    return string();
+}
+
+string HomeChat::handleUnknown(uint32_t node_num, const string &message,
+                               bool isAdmin, bool isMate)
+{
+    (void)(node_num);
+    (void)(message);
+    (void)(isAdmin);
+    (void)(isMate);
 
     return string();
 }
