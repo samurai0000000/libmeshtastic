@@ -19,6 +19,9 @@ SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
     _help_list.push_back("system");
     _help_list.push_back("reboot");
     _help_list.push_back("status");
+    _help_list.push_back("wcfg");
+    _help_list.push_back("disc");
+    _help_list.push_back("hb");
     _help_list.push_back("dm");
     _help_list.push_back("cm");
     _help_list.push_back("authchan");
@@ -191,6 +194,12 @@ int SimpleShell::exec(char *cmdline)
         ret = this->reboot(argc, argv);
     } else if (strcmp(argv[0], "status") == 0) {
         ret = this->status(argc, argv);
+    } else if (strcmp(argv[0], "wcfg") == 0) {
+        ret = this->wcfg(argc, argv);
+    } else if (strcmp(argv[0], "disc") == 0) {
+        ret = this->disc(argc, argv);
+    } else if (strcmp(argv[0], "hb") == 0) {
+        ret = this->hb(argc, argv);
     } else if (strcmp(argv[0], "dm") == 0) {
         ret = this->dm(argc, argv);
     } else if (strcmp(argv[0], "cm") == 0) {
@@ -379,6 +388,51 @@ int SimpleShell::status(int argc, char **argv)
                  _client->meshDeviceLastRecivedSecondsAgo());
 
 done:
+
+    return ret;
+}
+
+int SimpleShell::wcfg(int argc, char **argv)
+{
+    int ret = 0;
+
+    (void)(argc);
+    (void)(argv);
+
+    if (_client->sendWantConfig() != true) {
+        this->printf("failed!\n");
+        ret = -1;
+    }
+
+    return ret;
+}
+
+int SimpleShell::disc(int argc, char **argv)
+{
+   int ret = 0;
+
+    (void)(argc);
+    (void)(argv);
+
+    if (_client->sendDisconnect() != true) {
+        this->printf("failed!\n");
+        ret = -1;
+    }
+
+    return ret;
+}
+
+int SimpleShell::hb(int argc, char **argv)
+{
+   int ret = 0;
+
+    (void)(argc);
+    (void)(argv);
+
+    if (_client->sendHeartbeat() != true) {
+        this->printf("failed!\n");
+        ret = -1;
+    }
 
     return ret;
 }

@@ -15,6 +15,9 @@
 
 using namespace std;
 
+extern void toLowercase(string &s);
+extern void trimWhitespace(string &s);
+
 struct vprintf_callback {
     void *ctx;
     int (*vprintf)(void *ctx, const char *format, va_list ap);
@@ -57,18 +60,16 @@ protected:
     virtual void setLastMessageFrom(uint32_t node_num, const string &message);
     virtual string getLastMessageFrom(uint32_t node_num) const;
 
-    virtual string handleRollcall(uint32_t node_num, const string &message);
-    virtual string handleMeshAuth(uint32_t node_num, const string &message);
-    virtual string handleUptime(uint32_t node_num, const string &message);
-    virtual string handleZeroHops(uint32_t node_num, const string &message);
-    virtual string handleNodes(uint32_t node_num, const string &message);
-    virtual string handleMeshStats(uint32_t node_num, const string &message);
-    virtual string handleAuthchans(uint32_t node_num, const string &message);
-    virtual string handleAdmins(uint32_t node_num, const string &message);
-    virtual string handleMates(uint32_t node_num, const string &message);
-    virtual string handleStatus(uint32_t node_num, const string &message);
-    virtual string handleUnknown(uint32_t node_num, const string &message,
-                                 bool isAdmin, bool isMate);
+    virtual string handleRollcall(uint32_t node_num, string &message);
+    virtual string handleUptime(uint32_t node_num, string &message);
+    virtual string handleZeroHops(uint32_t node_num, string &message);
+    virtual string handleNodes(uint32_t node_num, string &message);
+    virtual string handleMeshStats(uint32_t node_num, string &message);
+    virtual string handleAuthchans(uint32_t node_num, string &message);
+    virtual string handleAdmins(uint32_t node_num, string &message);
+    virtual string handleMates(uint32_t node_num, string &message);
+    virtual string handleStatus(uint32_t node_num, string &message);
+    virtual string handleUnknown(uint32_t node_num, string &message);
 
     virtual int printf(const char *format, ...) const;
     virtual int vprintf(const char *format, va_list ap) const;

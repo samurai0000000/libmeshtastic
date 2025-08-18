@@ -682,10 +682,11 @@ void MeshClient::run(void)
 {
     int ret = 0;
     uint32_t timeout_ms = 1000;
-    time_t last, last_want_config, now;
+    time_t last_heartbeat, last_want_config, now;
 
-    last = now = time(NULL);
-    last_want_config = 0;
+    now = time(NULL);
+    last_heartbeat = now;
+    last_want_config = now;
 
     sendDisconnect();
 
@@ -698,29 +699,30 @@ void MeshClient::run(void)
                 continue;
             }
 
-            last_want_config = time(NULL);
+            last_want_config = now;
+        } else if (isConnected()) {
+            last_want_config = now;
         }
 
-        ret = mt_serial_process(&_mtc, timeout_ms);
-        if (ret != 0) {
-            _isRunning = false;
-            continue;
-        }
-
-        if (!isConnected()) {
-            continue;
-        }
-
-        now = time(NULL);
         if (_heartbeatSeconds > 0) {
-            if ((now - last) >= (time_t) _heartbeatSeconds) {
+            if (isConnected() &&
+                ((now - last_heartbeat) >= (time_t) _heartbeatSeconds)) {
                 if (sendHeartbeat() != true) {
                     _isRunning = false;
                     break;
                 }
-                last = now;
+
+                last_heartbeat = now;
             }
         }
+
+        do {
+            ret = mt_serial_process(&_mtc, timeout_ms);
+            if (ret != 0) {
+                _isRunning = false;
+                continue;
+            }
+        } while (ret > 0);
     }
 
     sendDisconnect();

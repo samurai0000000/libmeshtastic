@@ -88,6 +88,9 @@ protected:
     virtual int system(int argc, char **argv);
     virtual int reboot(int argc, char **argv);
     virtual int status(int argc, char **argv);
+    virtual int wcfg(int argc, char **argv);
+    virtual int disc(int argc, char **argv);
+    virtual int hb(int argc, char **argv);
     virtual int dm(int argc, char **argv);
     virtual int cm(int argc, char **argv);
     virtual int authchan(int argc, char **argv);

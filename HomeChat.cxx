@@ -14,6 +14,26 @@
 #include <functional>
 #include <HomeChat.hxx>
 
+void toLowercase(string &s)
+{
+    transform(s.begin(), s.end(), s.begin(),
+              [](unsigned char c) { return tolower(c); }
+        );
+}
+
+void trimWhitespace(string &s)
+{
+    s.erase(s.begin(),
+            find_if(s.begin(), s.end(),
+                    [](unsigned char ch) {
+                        return !isspace(ch);
+                    }));
+    s.erase(find_if(s.rbegin(), s.rend(),
+                    [](unsigned char ch) {
+                        return !isspace(ch);
+                    }).base(), s.end());
+}
+
 HomeChat::HomeChat(shared_ptr<SimpleClient> client)
 {
     setClient(client);
@@ -194,24 +214,10 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
                      message.c_str());
     }
 
-    // tolower
-    transform(message.begin(), message.end(), message.begin(),
-              [](unsigned char c) { return tolower(c); }
-        );
-    // trim white space and punct (front)
-    message.erase(message.begin(),
-                  find_if(message.begin(), message.end(),
-                          [](unsigned char ch) {
-                              return !isspace(ch) && !ispunct(ch);
-                          }));
-    // trim white spaces and punct (back)
-    message.erase(find_if(message.rbegin(), message.rend(),
-                          [](unsigned char ch) {
-                              return !isspace(ch) && !ispunct(ch);
-                          }).base(), message.end());
-
     // get first word
+    trimWhitespace(message);
     first_word = message.substr(0, message.find(' '));
+    toLowercase(first_word);
 
     if (channelMessage &&
         ((first_word == _client->lookupShortName(_client->whoami())) ||
@@ -221,17 +227,7 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         // message is addressed to me
         addressed2Me = true;
         message = message.substr(first_word.size());
-        // trim white spaces and punct (front)
-        message.erase(message.begin(),
-                      find_if(message.begin(), message.end(),
-                              [](unsigned char ch) {
-                                  return !isspace(ch) && !ispunct(ch);
-                              }));
-        // trim white space and punct (back)
-        message.erase(find_if(message.rbegin(), message.rend(),
-                              [](unsigned char ch) {
-                                  return !isspace(ch) && !ispunct(ch);
-                              }).base(), message.end());
+        trimWhitespace(message);
     }
 
     getAuthority(packet.from, isAdmin, isMate);
@@ -336,7 +332,7 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
-    reply = handleUnknown(packet.from, message, isAdmin, isMate);
+    reply = handleUnknown(packet.from, message);
 
 done:
 
@@ -417,7 +413,7 @@ string HomeChat::getLastMessageFrom(uint32_t node_num) const
     return s;
 }
 
-string HomeChat::handleRollcall(uint32_t node_num, const string &message)
+string HomeChat::handleRollcall(uint32_t node_num, string &message)
 {
     string reply;
 
@@ -431,15 +427,7 @@ string HomeChat::handleRollcall(uint32_t node_num, const string &message)
     return reply;
 }
 
-string HomeChat::handleMeshAuth(uint32_t node_num, const string &message)
-{
-    (void)(node_num);
-    (void)(message);
-
-    return string();
-}
-
-string HomeChat::handleUptime(uint32_t node_num, const string &message)
+string HomeChat::handleUptime(uint32_t node_num, string &message)
 {
     time_t now;
     uint32_t upsec;
@@ -466,7 +454,7 @@ string HomeChat::handleUptime(uint32_t node_num, const string &message)
     return string(buf);
 }
 
-string HomeChat::handleZeroHops(uint32_t node_num, const string &message)
+string HomeChat::handleZeroHops(uint32_t node_num, string &message)
 {
     string reply;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -493,7 +481,7 @@ string HomeChat::handleZeroHops(uint32_t node_num, const string &message)
     return reply;
 }
 
-string HomeChat::handleNodes(uint32_t node_num, const string &message)
+string HomeChat::handleNodes(uint32_t node_num, string &message)
 {
     string reply;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -531,7 +519,7 @@ string HomeChat::handleNodes(uint32_t node_num, const string &message)
     return reply;
 }
 
-string HomeChat::handleMeshStats(uint32_t node_num, const string &message)
+string HomeChat::handleMeshStats(uint32_t node_num, string &message)
 {
     stringstream ss;
     map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev;
@@ -560,7 +548,7 @@ string HomeChat::handleMeshStats(uint32_t node_num, const string &message)
     return ss.str();
 }
 
-string HomeChat::handleAuthchans(uint32_t node_num, const string &message)
+string HomeChat::handleAuthchans(uint32_t node_num, string &message)
 {
     stringstream ss;
 
@@ -576,7 +564,7 @@ string HomeChat::handleAuthchans(uint32_t node_num, const string &message)
     return ss.str();
 }
 
-string HomeChat::handleAdmins(uint32_t node_num, const string &message)
+string HomeChat::handleAdmins(uint32_t node_num, string &message)
 {
     stringstream ss;
 
@@ -592,7 +580,7 @@ string HomeChat::handleAdmins(uint32_t node_num, const string &message)
     return ss.str();
 }
 
-string HomeChat::handleMates(uint32_t node_num, const string &message)
+string HomeChat::handleMates(uint32_t node_num, string &message)
 {
     stringstream ss;
 
@@ -608,7 +596,7 @@ string HomeChat::handleMates(uint32_t node_num, const string &message)
     return ss.str();
 }
 
-string HomeChat::handleStatus(uint32_t node_num, const string &message)
+string HomeChat::handleStatus(uint32_t node_num, string &message)
 {
     (void)(node_num);
     (void)(message);
@@ -616,13 +604,10 @@ string HomeChat::handleStatus(uint32_t node_num, const string &message)
     return string();
 }
 
-string HomeChat::handleUnknown(uint32_t node_num, const string &message,
-                               bool isAdmin, bool isMate)
+string HomeChat::handleUnknown(uint32_t node_num, string &message)
 {
     (void)(node_num);
     (void)(message);
-    (void)(isAdmin);
-    (void)(isMate);
 
     return string();
 }
