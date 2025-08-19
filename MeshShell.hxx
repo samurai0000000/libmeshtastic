@@ -16,7 +16,7 @@
 #include <memory>
 #include <libmeshtastic.h>
 #include <MeshClient.hxx>
-#include <MeshNVM.hxx>
+#include <MeshNvm.hxx>
 #include <SimpleShell.hxx>
 
 using namespace std;
@@ -29,7 +29,7 @@ public:
     ~MeshShell();
 
     virtual void setClient(shared_ptr<MeshClient> client);
-    virtual void setNVM(shared_ptr<MeshNVM> nvm);
+    virtual void setNvm(shared_ptr<MeshNvm> nvm);
 
     inline virtual int process(void) {
         return -1;
@@ -45,7 +45,7 @@ public:
 protected:
 
     shared_ptr<MeshClient> _client;
-    shared_ptr<MeshNVM> _nvm;
+    shared_ptr<MeshNvm> _nvm;
 
     virtual int printf(const char *format, ...);
     virtual int exit(int argc, char **argv);

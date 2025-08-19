@@ -58,9 +58,9 @@ void MeshShell::setClient(shared_ptr<MeshClient> client)
     }
 }
 
-void MeshShell::setNVM(shared_ptr<MeshNVM > nvm)
+void MeshShell::setNvm(shared_ptr<MeshNvm > nvm)
 {
-    SimpleShell::setNVM(dynamic_pointer_cast<BaseNVM>(nvm));
+    SimpleShell::setNvm(dynamic_pointer_cast<BaseNvm>(nvm));
     _nvm = nvm;
 }
 
@@ -337,7 +337,7 @@ void MeshShell::run(void)
 
             clientShell = make_shared<MeshShell>();
             clientShell->setClient(_client);
-            clientShell->setNVM(_nvm);
+            clientShell->setNvm(_nvm);
             clientShell->setBanner(_banner);
             clientShell->setVersion(_version);
             clientShell->setBuilt(_built);
