@@ -40,7 +40,7 @@ void SimpleShell::setClient(shared_ptr<SimpleClient> client)
     _client = client;
 }
 
-void SimpleShell::setNVM(shared_ptr<BaseNVM> nvm)
+void SimpleShell::setNvm(shared_ptr<BaseNvm> nvm)
 {
     _nvm = nvm;
 }
@@ -520,7 +520,7 @@ int SimpleShell::authchan(int argc, char **argv)
         for (unsigned int i = 0; i < _nvm->nvmAuthchans().size(); i++) {
             this->printf("%s\n", _nvm->nvmAuthchans()[i].name);
         }
-    } else if ((argc == 3) && strcmp(argv[1], "add") == 0) {
+    } else if ((argc == 3) && (strcmp(argv[1], "add") == 0)) {
         result = _nvm->addNvmAuthChannel(argv[2], *_client);
         if (result == false) {
             this->printf("addNvmAuthChannel failed!\n");
@@ -534,7 +534,7 @@ int SimpleShell::authchan(int argc, char **argv)
             goto done;
         }
         this->printf("ok\n");
-    } else if ((argc == 3) && strcmp(argv[1], "del") == 0) {
+    } else if ((argc == 3) && (strcmp(argv[1], "del") == 0)) {
         result = _nvm->delNvmAuthChannel(argv[2]);
         if (result == false) {
             this->printf("delNvmAuthChannel failed!\n");
@@ -548,6 +548,24 @@ int SimpleShell::authchan(int argc, char **argv)
             goto done;
         }
         this->printf("ok\n");
+    } else if ((argc == 2) && (strcmp(argv[1], "clear") == 0)) {
+        _nvm->clearNvmAuthChannels();
+        this->printf("ok\n");
+    } else if ((argc > 3) && (strcmp(argv[1], "set") == 0)) {
+        int i, pass = 0, fail = 0;
+
+        _nvm->clearNvmAuthChannels();
+        for (i = 2; i < argc; i++) {
+            result = _nvm->addNvmAuthChannel(argv[i], *_client);
+            if (result) {
+                this->printf("%s - pass\n", argv[i]);
+                pass++;
+            } else {
+                this->printf("%s - failok\n", argv[i]);
+                fail++;
+            }
+        }
+        this->printf("added %u channels, %u failed to add\n", pass, fail);
     } else {
         this->printf("syntax error!\n");
         ret = -1;
@@ -579,7 +597,7 @@ int SimpleShell::admin(int argc, char **argv)
         if ((i % 4) != 0) {
             this->printf("\n");
         }
-    } else if ((argc == 3) && strcmp(argv[1], "add") == 0) {
+    } else if ((argc == 3) && (strcmp(argv[1], "add") == 0)) {
         result = _nvm->addNvmAdmin(argv[2], *_client);
         if (result == false) {
             this->printf("addNvmAdmin failed!\n");
@@ -593,7 +611,7 @@ int SimpleShell::admin(int argc, char **argv)
             goto done;
         }
         this->printf("ok\n");
-    } else if ((argc == 3) && strcmp(argv[1], "del") == 0) {
+    } else if ((argc == 3) && (strcmp(argv[1], "del") == 0)) {
         result = _nvm->delNvmAdmin(argv[2], *_client);
         if (result == false) {
             this->printf("delNvmAdmin failed!\n");
@@ -607,6 +625,24 @@ int SimpleShell::admin(int argc, char **argv)
             goto done;
         }
         this->printf("ok\n");
+    } else if ((argc == 2) && (strcmp(argv[1], "clear") == 0)) {
+        _nvm->clearNvmAdmins();
+        this->printf("ok\n");
+    } else if ((argc > 3) && (strcmp(argv[1], "set") == 0)) {
+        int i, pass = 0, fail = 0;
+
+        _nvm->clearNvmAdmins();
+        for (i = 2; i < argc; i++) {
+            result = _nvm->addNvmAdmin(argv[i], *_client);
+            if (result) {
+                this->printf("%s - pass\n", argv[i]);
+                pass++;
+            } else {
+                this->printf("%s - failok\n", argv[i]);
+                fail++;
+            }
+        }
+        this->printf("added %u admins, %u failed to add\n", pass, fail);
     } else {
         this->printf("syntax error!\n");
         ret = -1;
@@ -638,7 +674,7 @@ int SimpleShell::mate(int argc, char **argv)
         if ((i % 4) != 0) {
             this->printf("\n");
         }
-    } else if ((argc == 3) && strcmp(argv[1], "add") == 0) {
+    } else if ((argc == 3) && (strcmp(argv[1], "add") == 0)) {
         result = _nvm->addNvmMate(argv[2], *_client);
         if (result == false) {
             this->printf("addNvmMate failed!\n");
@@ -652,7 +688,7 @@ int SimpleShell::mate(int argc, char **argv)
             goto done;
         }
         this->printf("ok\n");
-    } else if ((argc == 3) && strcmp(argv[1], "del") == 0) {
+    } else if ((argc == 3) && (strcmp(argv[1], "del") == 0)) {
         result = _nvm->delNvmMate(argv[2], *_client);
         if (result == false) {
             this->printf("delNvmMate failed!\n");
@@ -666,6 +702,24 @@ int SimpleShell::mate(int argc, char **argv)
             goto done;
         }
         this->printf("ok\n");
+    } else if ((argc == 2) && (strcmp(argv[1], "clear") == 0)) {
+        _nvm->clearNvmMates();
+        this->printf("ok\n");
+    } else if ((argc > 3) && (strcmp(argv[1], "set") == 0)) {
+        int i, pass = 0, fail = 0;
+
+        _nvm->clearNvmMates();
+        for (i = 2; i < argc; i++) {
+            result = _nvm->addNvmMate(argv[i], *_client);
+            if (result) {
+                this->printf("%s - pass\n", argv[i]);
+                pass++;
+            } else {
+                this->printf("%s - failok\n", argv[i]);
+                fail++;
+            }
+        }
+        this->printf("added %u mates, %u failed to add\n", pass, fail);
     } else {
         this->printf("syntax error!\n");
         ret = -1;

@@ -51,6 +51,11 @@ void HomeChat::setClient(shared_ptr<SimpleClient> client)
     _client = client;
 }
 
+void HomeChat::setNvm(shared_ptr<BaseNvm> nvm)
+{
+    _nvm = nvm;
+}
+
 static bool operator==(const struct vprintf_callback &lhs,
                        const struct vprintf_callback &rhs)
 {
@@ -277,21 +282,21 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
-    // authchans
-    if ((directMessage || addressed2Me) && (message == "authchans")) {
-        reply = handleAuthchans(packet.from, message);
+    // authchan
+    if ((directMessage || addressed2Me) && (first_word == "authchan")) {
+        reply = handleAuthchan(packet.from, message);
         goto done;
     }
 
-    // admins
-    if ((directMessage || addressed2Me) && (message == "admins")) {
-        reply = handleAdmins(packet.from, message);
+    // admin
+    if ((directMessage || addressed2Me) && (first_word == "admin")) {
+        reply = handleAdmin(packet.from, message);
         goto done;
     }
 
-    // mates
-    if ((directMessage || addressed2Me) && (message == "mates")) {
-        reply = handleMates(packet.from, message);
+    // mate
+    if ((directMessage || addressed2Me) && (first_word == "mate")) {
+        reply = handleMate(packet.from, message);
         goto done;
     }
 
@@ -548,49 +553,312 @@ string HomeChat::handleMeshStats(uint32_t node_num, string &message)
     return ss.str();
 }
 
-string HomeChat::handleAuthchans(uint32_t node_num, string &message)
+string HomeChat::handleAuthchan(uint32_t node_num, string &message)
 {
     stringstream ss;
+    bool isAdmin = false, isMate = false;
+    bool isViolated = false;
+    char delimiter = ' ';
+    istringstream iss;
+    string token;
+    vector<string> tokens;
+    unsigned int i;
+    bool result;
+    int pass = 0, fail = 0;
 
-    (void)(node_num);
-    (void)(message);
+    getAuthority(node_num, isAdmin, isMate);
 
-    ss << "list of authchans:";
-    for (map<string, meshtastic_ChannelSettings_psk_t>::const_iterator it =
-             _authchans.begin(); it != _authchans.end(); it++) {
-        ss << endl << "  " << it->first;
+    trimWhitespace(message);
+    iss = istringstream(message);
+    while (getline(iss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+    if (tokens.size() == 1) {
+        i = 0;
+        for (map<string, meshtastic_ChannelSettings_psk_t>::const_iterator it =
+                 _authchans.begin(); it != _authchans.end(); it++, i++) {
+            if (i > 0) {
+                ss << endl;
+            }
+            ss << it->first;
+        }
+    } else {
+        if ((tokens.size() == 3) && (tokens[1] == "add")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            if (_nvm->addNvmAuthChannel(tokens[2], *_client) &&
+                _nvm->saveNvm()) {
+                result = true;
+            } else {
+                result = false;
+            }
+
+            if (result == true) {
+                ss << "added " << tokens[2];
+            } else {
+                ss << "add " << tokens[2] << " failed!";
+            }
+        } else if ((tokens.size() == 3) && (tokens[1] == "del")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            if (_nvm->delNvmAuthChannel(tokens[2]) &&
+                _nvm->saveNvm()) {
+                result = true;
+            } else {
+                result = false;
+            }
+
+            if (result == true) {
+                ss << "deleted " << tokens[2];
+            } else {
+                ss << "delete " << tokens[2] << " failed!";
+            }
+        } else if ((tokens.size() >= 3) && (tokens[1] == "set")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            _nvm->clearNvmAuthChannels();
+            for (i = 2; i < tokens.size(); i++) {
+                result = _nvm->addNvmAuthChannel(tokens[i], *_client);
+                if (result == true) {
+                    pass++;
+                } else {
+                    fail++;
+                }
+            }
+            result = _nvm->saveNvm();
+
+            ss << "set " << pass << " authchan entries";
+            if (fail > 0) {
+                ss << " (" << fail << " entries failed to set!)";
+            }
+        } else {
+            ss << "authchan command syntax error!";
+        }
+    }
+
+done:
+
+    if (isViolated) {
+        ss.clear();
+        ss << _client->getDisplayName(node_num) << ", you are not an admin!";
     }
 
     return ss.str();
 }
 
-string HomeChat::handleAdmins(uint32_t node_num, string &message)
+string HomeChat::handleAdmin(uint32_t node_num, string &message)
 {
     stringstream ss;
+    bool isAdmin = false, isMate = false;
+    bool isViolated = false;
+    char delimiter = ' ';
+    istringstream iss;
+    string token;
+    vector<string> tokens;
+    unsigned int i;
+    bool result;
+    int pass = 0, fail = 0;
 
-    (void)(node_num);
-    (void)(message);
+    getAuthority(node_num, isAdmin, isMate);
 
-    ss << "list of admins:";
-    for (map<uint32_t, meshtastic_User_public_key_t>::const_iterator it =
-             _admins.begin(); it != _admins.end(); it++) {
-        ss << endl << "  " << _client->getDisplayName(it->first);
+    trimWhitespace(message);
+    iss = istringstream(message);
+    while (getline(iss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+
+    if (tokens.size() == 1) {
+        i = 0;
+        for (map<uint32_t, meshtastic_User_public_key_t>::const_iterator it =
+                 _admins.begin(); it != _admins.end(); it++, i++) {
+            if (i > 0) {
+                ss << endl;
+            }
+            ss << _client->getDisplayName(it->first);
+        }
+    } else {
+        if ((tokens.size() == 3) && (tokens[1] == "add")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            if (_nvm->addNvmAdmin(tokens[2], *_client) &&
+                _nvm->saveNvm()) {
+                result = true;
+            } else {
+                result = false;
+            }
+
+            if (result == true) {
+                ss << "added " << tokens[2];
+            } else {
+                ss << "add " << tokens[2] << " failed!";
+            }
+        } else if ((tokens.size() == 3) && (tokens[1] == "del")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            if (_nvm->delNvmAdmin(tokens[2], *_client) &&
+                _nvm->saveNvm()) {
+                result = true;
+            } else {
+                result = false;
+            }
+
+            if (result == true) {
+                ss << "deleted " << tokens[2];
+            } else {
+                ss << "delete " << tokens[2] << " failed!";
+            }
+        } else if ((tokens.size() >= 3) && (tokens[1] == "set")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            _nvm->clearNvmAdmins();
+            for (i = 2; i < tokens.size(); i++) {
+                result = _nvm->addNvmAdmin(tokens[i], *_client);
+                if (result == true) {
+                    pass++;
+                } else {
+                    fail++;
+                }
+            }
+            result = _nvm->saveNvm();
+
+            ss << "set " << pass << " admin entries";
+            if (fail > 0) {
+                ss << " (" << fail << " entries failed to set!)";
+            }
+        } else {
+            ss << "admin command syntax error!";
+        }
+    }
+
+done:
+
+    if (isViolated) {
+        ss.clear();
+        ss << _client->getDisplayName(node_num) << ", you are not an admin!";
     }
 
     return ss.str();
 }
 
-string HomeChat::handleMates(uint32_t node_num, string &message)
+string HomeChat::handleMate(uint32_t node_num, string &message)
 {
     stringstream ss;
+    bool isAdmin = false, isMate = false;
+    bool isViolated = false;
+    char delimiter = ' ';
+    istringstream iss;
+    string token;
+    vector<string> tokens;
+    unsigned int i;
+    bool result;
+    int pass = 0, fail = 0;
 
-    (void)(node_num);
-    (void)(message);
+    getAuthority(node_num, isAdmin, isMate);
 
-    ss << "list of mates:";
-    for (map<uint32_t, meshtastic_User_public_key_t>::const_iterator it =
-             _mates.begin(); it != _mates.end(); it++) {
-        ss << endl << "  " << _client->getDisplayName(it->first);
+    trimWhitespace(message);
+    iss = istringstream(message);
+    while (getline(iss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+
+    if (tokens.size() == 1) {
+        i = 0;
+        for (map<uint32_t, meshtastic_User_public_key_t>::const_iterator it =
+                 _mates.begin(); it != _mates.end(); it++, i++) {
+            if (i > 0) {
+                ss << endl;
+            }
+            ss << _client->getDisplayName(it->first);
+        }
+    } else {
+        if ((tokens.size() == 3) && (tokens[1] == "add")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            if (_nvm->addNvmMate(tokens[2], *_client) &&
+                _nvm->saveNvm()) {
+                result = true;
+            } else {
+                result = false;
+            }
+
+            if (result == true) {
+                ss << "added " << tokens[2];
+            } else {
+                ss << "add " << tokens[2] << " failed!";
+            }
+        } else if ((tokens.size() == 3) && (tokens[1] == "del")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            if (_nvm->delNvmMate(tokens[2], *_client) &&
+                _nvm->saveNvm()) {
+                result = true;
+            } else {
+                result = false;
+            }
+
+            if (result == true) {
+                ss << "deleted " << tokens[2];
+            } else {
+                ss << "delete " << tokens[2] << " failed!";
+            }
+        } else if ((tokens.size() >= 3) && (tokens[1] == "set")) {
+            if (isAdmin == false) {
+                isViolated = true;
+                goto done;
+            }
+
+            _nvm->clearNvmMates();
+            for (i = 2; i < tokens.size(); i++) {
+                result = _nvm->addNvmMate(tokens[i], *_client);
+                if (result == true) {
+                    pass++;
+                } else {
+                    fail++;
+                }
+            }
+            result = _nvm->saveNvm();
+
+            ss << "set " << pass << " mate entries";
+            if (fail > 0) {
+                ss << " (" << fail << " entries failed to set!)";
+            }
+        } else {
+            ss << "mate command syntax error!";
+        }
+    }
+
+done:
+
+    if (isViolated) {
+        ss.clear();
+        ss << _client->getDisplayName(node_num) << ", you are not an admin!";
     }
 
     return ss.str();

@@ -30,7 +30,7 @@ if (DEFINED PICO_PLATFORM)
     ${CMAKE_CURRENT_SOURCE_DIR}/protocol.c
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
-    ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/BaseNvm.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleShell.cxx
     )
 else ()
@@ -45,8 +45,8 @@ else ()
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshClient.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
-    ${CMAKE_CURRENT_SOURCE_DIR}/BaseNVM.cxx
-    ${CMAKE_CURRENT_SOURCE_DIR}/MeshNVM.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/BaseNvm.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshNvm.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleShell.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshShell.cxx
     )

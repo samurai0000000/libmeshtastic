@@ -1,23 +1,23 @@
 /*
- * BaseNVM.hxx
+ * BaseNvm.hxx
  *
  * Copyright (C) 2025, Charles Chiou
  */
 
 #include <cstring>
-#include <BaseNVM.hxx>
+#include <BaseNvm.hxx>
 
-BaseNVM::BaseNVM()
+BaseNvm::BaseNvm()
 {
 
 }
 
-BaseNVM::~BaseNVM()
+BaseNvm::~BaseNvm()
 {
 
 }
 
-bool BaseNVM::addNvmAuthChannel(const string &channel,
+bool BaseNvm::addNvmAuthChannel(const string &channel,
                                 meshtastic_ChannelSettings_psk_t psk,
                                 bool ignoreDup)
 {
@@ -59,7 +59,7 @@ done:
 }
 
 
-bool BaseNVM::addNvmAuthChannel(const string &channel,
+bool BaseNvm::addNvmAuthChannel(const string &channel,
                                 const SimpleClient &client)
 {
     bool result = false;
@@ -81,7 +81,7 @@ bool BaseNVM::addNvmAuthChannel(const string &channel,
     return result;
 }
 
-bool BaseNVM::delNvmAuthChannel(const string &channel)
+bool BaseNvm::delNvmAuthChannel(const string &channel)
 {
     vector<struct nvm_authchan_entry>::iterator it;
 
@@ -95,7 +95,12 @@ bool BaseNVM::delNvmAuthChannel(const string &channel)
     return false;
 }
 
-bool BaseNVM::addNvmAdmin(uint32_t node_num,
+void BaseNvm::clearNvmAuthChannels(void)
+{
+    _nvm_authchans.clear();
+}
+
+bool BaseNvm::addNvmAdmin(uint32_t node_num,
                           meshtastic_User_public_key_t pubkey,
                           bool ignoreDup)
 {
@@ -136,7 +141,7 @@ done:
     return result;
 }
 
-bool BaseNVM::addNvmAdmin(const string &name, const SimpleClient &client)
+bool BaseNvm::addNvmAdmin(const string &name, const SimpleClient &client)
 {
     bool result = false;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -161,7 +166,7 @@ bool BaseNVM::addNvmAdmin(const string &name, const SimpleClient &client)
     return result;
 }
 
-bool BaseNVM::delNvmAdmin(uint32_t node_num)
+bool BaseNvm::delNvmAdmin(uint32_t node_num)
 {
     vector<struct nvm_admin_entry>::iterator it;
 
@@ -175,7 +180,7 @@ bool BaseNVM::delNvmAdmin(uint32_t node_num)
     return false;
 }
 
-bool BaseNVM::delNvmAdmin(const string &name, const SimpleClient &client)
+bool BaseNvm::delNvmAdmin(const string &name, const SimpleClient &client)
 {
     bool result = false;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -200,7 +205,12 @@ bool BaseNVM::delNvmAdmin(const string &name, const SimpleClient &client)
     return result;
 }
 
-bool BaseNVM::addNvmMate(uint32_t node_num,
+void BaseNvm::clearNvmAdmins(void)
+{
+    _nvm_admins.clear();
+}
+
+bool BaseNvm::addNvmMate(uint32_t node_num,
                          meshtastic_User_public_key_t pubkey,
                          bool ignoreDup)
 {
@@ -236,7 +246,7 @@ done:
     return result;
 }
 
-bool BaseNVM::addNvmMate(const string &name, const SimpleClient &client)
+bool BaseNvm::addNvmMate(const string &name, const SimpleClient &client)
 {
     bool result = false;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -261,7 +271,7 @@ bool BaseNVM::addNvmMate(const string &name, const SimpleClient &client)
     return result;
 }
 
-bool BaseNVM::delNvmMate(uint32_t node_num)
+bool BaseNvm::delNvmMate(uint32_t node_num)
 {
     vector<struct nvm_mate_entry>::iterator it;
 
@@ -275,7 +285,7 @@ bool BaseNVM::delNvmMate(uint32_t node_num)
     return false;
 }
 
-bool BaseNVM::delNvmMate(const string &name, const SimpleClient &client)
+bool BaseNvm::delNvmMate(const string &name, const SimpleClient &client)
 {
     bool result = false;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -301,6 +311,11 @@ bool BaseNVM::delNvmMate(const string &name, const SimpleClient &client)
     }
 
     return result;
+}
+
+void BaseNvm::clearNvmMates(void)
+{
+    _nvm_mates.clear();
 }
 
 /*

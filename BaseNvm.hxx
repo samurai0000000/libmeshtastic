@@ -1,5 +1,5 @@
 /*
- * BaseNVM.hxx
+ * BaseNvm.hxx
  *
  * Copyright (C) 2025, Charles Chiou
  */
@@ -29,12 +29,12 @@ struct nvm_mate_entry {
     meshtastic_User_public_key_t pubkey;
 } __attribute__((packed));
 
-class BaseNVM {
+class BaseNvm {
 
 public:
 
-    BaseNVM();
-    ~BaseNVM();
+    BaseNvm();
+    ~BaseNvm();
 
     virtual bool loadNvm(void) = 0;
     virtual bool saveNvm(void) = 0;
@@ -56,18 +56,21 @@ public:
                            bool ignoreDup = true);
     bool addNvmAuthChannel(const string &channel, const SimpleClient &client);
     bool delNvmAuthChannel(const string &channel);
+    void clearNvmAuthChannels(void);
     bool addNvmAdmin(uint32_t node_num,
                      meshtastic_User_public_key_t pubkey,
                      bool ignoreDup = true);
     bool addNvmAdmin(const string &name, const SimpleClient &client);
     bool delNvmAdmin(uint32_t node_num);
     bool delNvmAdmin(const string &name, const SimpleClient &client);
+    void clearNvmAdmins(void);
     bool addNvmMate(uint32_t node_num,
                     meshtastic_User_public_key_t pubkey,
                     bool ignoreDup = true);
     bool addNvmMate(const string &name, const SimpleClient &client);
     bool delNvmMate(uint32_t node_num);
     bool delNvmMate(const string &name, const SimpleClient &client);
+    void clearNvmMates(void);
 
 protected:
 

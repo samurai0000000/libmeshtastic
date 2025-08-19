@@ -12,6 +12,7 @@
 #include <map>
 #include <vector>
 #include <SimpleClient.hxx>
+#include <BaseNvm.hxx>
 
 using namespace std;
 
@@ -31,6 +32,7 @@ public:
     ~HomeChat();
 
     virtual void setClient(shared_ptr<SimpleClient> client);
+    virtual void setNvm(shared_ptr<BaseNvm> nvm);
 
     void addPrintfCallback(const struct vprintf_callback &cb);
     void delPrintfCallback(const struct vprintf_callback &cb);
@@ -65,9 +67,9 @@ protected:
     virtual string handleZeroHops(uint32_t node_num, string &message);
     virtual string handleNodes(uint32_t node_num, string &message);
     virtual string handleMeshStats(uint32_t node_num, string &message);
-    virtual string handleAuthchans(uint32_t node_num, string &message);
-    virtual string handleAdmins(uint32_t node_num, string &message);
-    virtual string handleMates(uint32_t node_num, string &message);
+    virtual string handleAuthchan(uint32_t node_num, string &message);
+    virtual string handleAdmin(uint32_t node_num, string &message);
+    virtual string handleMate(uint32_t node_num, string &message);
     virtual string handleStatus(uint32_t node_num, string &message);
     virtual string handleUnknown(uint32_t node_num, string &message);
 
@@ -77,6 +79,7 @@ protected:
 protected:
 
     shared_ptr<SimpleClient> _client;
+    shared_ptr<BaseNvm> _nvm;
 
     time_t _since;
     map<uint32_t, string> _lastMessageFrom;

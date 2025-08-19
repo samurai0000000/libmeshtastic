@@ -10,7 +10,7 @@
 #include <string>
 #include <memory>
 #include <libmeshtastic.h>
-#include <BaseNVM.hxx>
+#include <BaseNvm.hxx>
 
 using namespace std;
 
@@ -48,7 +48,7 @@ public:
     }
 
     virtual void setClient(shared_ptr<SimpleClient> client);
-    virtual void setNVM(shared_ptr<BaseNVM> nvm);
+    virtual void setNvm(shared_ptr<BaseNvm> nvm);
 
     inline void setNoEcho(bool noEcho) {
         _noEcho = noEcho;
@@ -75,7 +75,7 @@ public:
 protected:
 
     shared_ptr<SimpleClient> _client;
-    shared_ptr<BaseNVM> _nvm;
+    shared_ptr<BaseNvm> _nvm;
 
     virtual int tx_write(const uint8_t *buf, size_t size);
     virtual int printf(const char *format, ...);

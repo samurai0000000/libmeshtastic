@@ -1,5 +1,5 @@
 /*
- * MeshNVM.cxx
+ * MeshNvm.cxx
  *
  * Copyright (C) 2025, Charles Chiou
  */
@@ -11,21 +11,21 @@
 #include <sstream>
 #include <iomanip>
 #include <libconfig.h++>
-#include <MeshNVM.hxx>
+#include <MeshNvm.hxx>
 
 using namespace libconfig;
 
-MeshNVM::MeshNVM()
+MeshNvm::MeshNvm()
 {
     _node_num = 0x0U;
 }
 
-MeshNVM::~MeshNVM()
+MeshNvm::~MeshNvm()
 {
 
 }
 
-bool MeshNVM::setupFor(uint32_t node_num)
+bool MeshNvm::setupFor(uint32_t node_num)
 {
     bool result = false;
     string home;
@@ -148,7 +148,7 @@ static string pubkey_to_string(const meshtastic_User_public_key_t pubkey)
     return ss.str();
 }
 
-bool MeshNVM::loadNvm(void)
+bool MeshNvm::loadNvm(void)
 {
     bool result = false;
     Config cfg;
@@ -251,7 +251,7 @@ bool MeshNVM::loadNvm(void)
     return result;
 }
 
-bool MeshNVM::saveNvm(void)
+bool MeshNvm::saveNvm(void)
 {
     bool result = false;
     Config cfg;

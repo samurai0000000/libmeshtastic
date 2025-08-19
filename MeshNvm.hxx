@@ -1,5 +1,5 @@
 /*
- * MeshNVM.hxx
+ * MeshNvm.hxx
  *
  * Copyright (C) 2025, Charles Chiou
  */
@@ -7,16 +7,16 @@
 #ifndef MESHNVM_HXX
 #define MESHNVM_HXX
 
-#include <BaseNVM.hxx>
+#include <BaseNvm.hxx>
 
 using namespace std;
 
-class MeshNVM : public BaseNVM {
+class MeshNvm : public BaseNvm {
 
 public:
 
-    MeshNVM();
-    ~MeshNVM();
+    MeshNvm();
+    ~MeshNvm();
 
     bool setupFor(uint32_t node_num);
 
