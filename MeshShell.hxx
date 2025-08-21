@@ -47,6 +47,7 @@ protected:
     shared_ptr<MeshClient> _client;
     shared_ptr<MeshNvm> _nvm;
 
+    virtual shared_ptr<MeshShell> newInstance(void);
     virtual int printf(const char *format, ...);
     virtual int exit(int argc, char **argv);
     virtual int unknown_command(int argc, char **argv);

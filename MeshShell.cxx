@@ -335,7 +335,7 @@ void MeshShell::run(void)
                 continue;
             }
 
-            clientShell = make_shared<MeshShell>();
+            clientShell = newInstance();
             clientShell->setClient(_client);
             clientShell->setNvm(_nvm);
             clientShell->setBanner(_banner);
@@ -455,6 +455,11 @@ int MeshShell::vprintf(const char *format, va_list ap)
 done:
 
     return ret;
+}
+
+shared_ptr<MeshShell> MeshShell::newInstance(void)
+{
+    return make_shared<MeshShell>();
 }
 
 int MeshShell::printf(const char *format, ...)
