@@ -206,16 +206,18 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         directMessage = true;
         dest = packet.from;
         channel = packet.channel;
-        this->printf("%s: %s\n",
+        this->printf("%s:%c%s\n",
                      _client->getDisplayName(packet.from).c_str(),
+                     message.find('\n') == string::npos ? ' ' : '\n',
                      message.c_str());
     } else {
         channelMessage = true;
         dest = 0xffffffffU;
         channel = packet.channel;
-        this->printf("%s on #%s: %s\n",
+        this->printf("%s on #%s:%c%s\n",
                      _client->getDisplayName(packet.from).c_str(),
                      _client->getChannelName(packet.channel).c_str(),
+                     message.find('\n') == string::npos ? ' ' : '\n',
                      message.c_str());
     }
 
@@ -306,33 +308,17 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
+    // wcfg
+    if ((directMessage || addressed2Me) && (message == "wcfg")) {
+        reply = handleWcfg(packet.from, message);
+        goto done;
+    }
+
     // env
     if ((directMessage || addressed2Me) && (message == "env")) {
-        stringstream ss;
-        map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env;
-        env = _client->environmentMetrics().find(_client->whoami());
-        if (env != _client->environmentMetrics().end()) {
-            if (env->second.has_temperature) {
-                ss << "temperature: ";
-                ss << setprecision(3) << env->second.temperature;
-            }
-            if (env->second.has_relative_humidity) {
-                if (ss.tellp() != 0) {
-                    ss << endl;
-                }
-                ss << "relative_humidity: ";
-                ss << setprecision(3) << env->second.relative_humidity;
-            }
-            if (env->second.has_barometric_pressure) {
-                if (ss.tellp() != 0) {
-                    ss << endl;
-                }
-                ss << "barometric_pressure: ";
-                ss << setprecision(3) << env->second.barometric_pressure;
-            }
-            reply = ss.str();
-        } else {
-            reply = "I don't have environment metrics";
+        reply = handleEnv(packet.from, message);
+        if (reply.empty()) {
+            reply = "I don't have environment metrics...";
         }
         goto done;
     }
@@ -642,7 +628,7 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
                 ss << " (" << fail << " entries failed to set!)";
             }
         } else {
-            ss << "authchan command syntax error!";
+            ss << "syntax error!";
         }
     }
 
@@ -746,7 +732,7 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
                 ss << " (" << fail << " entries failed to set!)";
             }
         } else {
-            ss << "admin command syntax error!";
+            ss << "syntax error!";
         }
     }
 
@@ -850,7 +836,7 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
                 ss << " (" << fail << " entries failed to set!)";
             }
         } else {
-            ss << "mate command syntax error!";
+            ss << "syntax error!";
         }
     }
 
@@ -862,6 +848,57 @@ done:
     }
 
     return ss.str();
+}
+
+string HomeChat::handleEnv(uint32_t node_num, string &message)
+{
+    stringstream ss;
+    map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env;
+
+    (void)(node_num);
+    (void)(message);
+
+    env = _client->environmentMetrics().find(_client->whoami());
+    if (env != _client->environmentMetrics().end()) {
+        if (env->second.has_temperature) {
+            ss << "temperature: ";
+            ss << setprecision(3) << env->second.temperature;
+        }
+        if (env->second.has_relative_humidity) {
+            if (ss.tellp() != 0) {
+                ss << endl;
+            }
+            ss << "relative_humidity: ";
+            ss << setprecision(3) << env->second.relative_humidity;
+        }
+        if (env->second.has_barometric_pressure) {
+            if (ss.tellp() != 0) {
+                ss << endl;
+            }
+            ss << "barometric_pressure: ";
+                ss << setprecision(3) << env->second.barometric_pressure;
+        }
+    }
+
+    return ss.str();
+}
+
+string HomeChat::handleWcfg(uint32_t node_num, string &message)
+{
+    string reply;
+    bool result;
+
+    (void)(node_num);
+    (void)(message);
+
+    result = _client->sendWantConfig();
+    if (result) {
+        reply = "ok";
+    } else {
+        reply = "failed";
+    }
+
+    return reply;
 }
 
 string HomeChat::handleStatus(uint32_t node_num, string &message)

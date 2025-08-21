@@ -29,9 +29,9 @@ public:
     uint32_t whoami(void) const;
     string whoamiString(void) const;
     string idString(uint32_t id) const;
-    string lookupLongName(uint32_t id) const;
-    string lookupShortName(uint32_t id) const;
-    string getDisplayName(uint32_t id) const;
+    string lookupLongName(uint32_t id, bool noUnprintable = false) const;
+    string lookupShortName(uint32_t id, bool noUprintable = false) const;
+    string getDisplayName(uint32_t id, bool noUnprintable = false) const;
     uint32_t getId(const string &name) const;
     string getChannelName(uint8_t channel) const;
     uint8_t getChannel(const string &name) const;

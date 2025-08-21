@@ -70,7 +70,9 @@ protected:
     virtual string handleAuthchan(uint32_t node_num, string &message);
     virtual string handleAdmin(uint32_t node_num, string &message);
     virtual string handleMate(uint32_t node_num, string &message);
+    virtual string handleEnv(uint32_t node_num, string &message);
     virtual string handleStatus(uint32_t node_num, string &message);
+    virtual string handleWcfg(uint32_t node_num, string &message);
     virtual string handleUnknown(uint32_t node_num, string &message);
 
     virtual int printf(const char *format, ...) const;

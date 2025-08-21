@@ -200,6 +200,8 @@ int SimpleShell::exec(char *cmdline)
         ret = this->disc(argc, argv);
     } else if (strcmp(argv[0], "hb") == 0) {
         ret = this->hb(argc, argv);
+    } else if (strcmp(argv[0], "zerohops") == 0) {
+        ret = this->zerohops(argc, argv);
     } else if (strcmp(argv[0], "dm") == 0) {
         ret = this->dm(argc, argv);
     } else if (strcmp(argv[0], "cm") == 0) {
@@ -258,8 +260,12 @@ int SimpleShell::version(int argc, char **argv)
 
     (void)(argc);
     (void)(argv);
+
+    this->printf("%s\n", _banner.c_str());
     this->printf("%s\n", _version.c_str());
     this->printf("%s\n", _built.c_str());
+    this->printf("-------------------------------------------\n");
+    this->printf("%s\n", _copyright.c_str());
 
     return ret;
 }
@@ -315,8 +321,8 @@ int SimpleShell::status(int argc, char **argv)
     }
 
     this->printf("Me: %s %s\n",
-                 _client->getDisplayName(_client->whoami()).c_str(),
-                 _client->lookupLongName(_client->whoami()).c_str());
+                 _client->getDisplayName(_client->whoami(), true).c_str(),
+                 _client->lookupLongName(_client->whoami(), true).c_str());
 
     this->printf("Channels: %d\n",
                  _client->channels().size());
@@ -341,7 +347,7 @@ int SimpleShell::status(int argc, char **argv)
             this->printf("  ");
         }
         this->printf("%16s  ",
-                     _client->getDisplayName(it->second.num).c_str());
+                     _client->getDisplayName(it->second.num, true).c_str());
         if ((i % 4) == 3) {
             this->printf("\n");
         }
@@ -435,6 +441,35 @@ int SimpleShell::hb(int argc, char **argv)
     }
 
     return ret;
+}
+
+int SimpleShell::zerohops(int argc, char **argv)
+{
+   int ret = 0;
+   map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
+
+    (void)(argc);
+    (void)(argv);
+
+    this->printf("my zero-hop neighbors:\n");
+    for (it = _client->nodeInfos().begin();
+         it != _client->nodeInfos().end();
+         it++) {
+        if (it->second.num == _client->whoami()) {
+            continue;
+        }
+
+        if (!(it->second.has_hops_away) || (it->second.hops_away > 0)) {
+            continue;
+        }
+
+        this->printf("%s\n",
+                     _client->getDisplayName(it->second.num, true).c_str());
+    }
+
+
+    return ret;
+
 }
 
 int SimpleShell::dm(int argc, char **argv)
@@ -589,7 +624,7 @@ int SimpleShell::admin(int argc, char **argv)
         for (i = 0; i < _nvm->nvmAdmins().size(); i++) {
             uint32_t node_num = _nvm->nvmAdmins()[i].node_num;
             this->printf("%16s ",
-                         _client->getDisplayName(node_num).c_str());
+                         _client->getDisplayName(node_num, true).c_str());
             if ((i % 4) == 3) {
                 this->printf("\n");
             }
@@ -666,7 +701,7 @@ int SimpleShell::mate(int argc, char **argv)
         for (i = 0; i < _nvm->nvmMates().size(); i++) {
             uint32_t node_num = _nvm->nvmMates()[i].node_num;
             this->printf("%16s ",
-                         _client->getDisplayName(node_num).c_str());
+                         _client->getDisplayName(node_num, true).c_str());
             if ((i % 4) == 3) {
                 this->printf("\n");
             }

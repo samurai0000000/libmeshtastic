@@ -59,7 +59,7 @@ string SimpleClient::idString(uint32_t id) const
     return string(buf);
 }
 
-string SimpleClient::lookupLongName(uint32_t id) const
+string SimpleClient::lookupLongName(uint32_t id, bool noUnprintable) const
 {
     string s;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -70,13 +70,23 @@ string SimpleClient::lookupLongName(uint32_t id) const
 
     it = _nodeInfos.find(id);
     if (it != _nodeInfos.end()) {
-        s = it->second.user.long_name;
+        for (unsigned int i = 0; i < sizeof(it->second.user.long_name); i++) {
+            char c = it->second.user.long_name[i];
+            if (c == '\0') {
+                break;
+            }
+            if (!noUnprintable || isprint(c)) {
+                s += c;
+            } else {
+                s += "?";
+            }
+        }
     }
 
     return s;
 }
 
-string SimpleClient::lookupShortName(uint32_t id) const
+string SimpleClient::lookupShortName(uint32_t id, bool noUnprintable) const
 {
     string s;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -86,8 +96,15 @@ string SimpleClient::lookupShortName(uint32_t id) const
     }
 
     it = _nodeInfos.find(id);
-    if (it != _nodeInfos.end()) {
-        s = it->second.user.short_name;
+    if ((it != _nodeInfos.end()) && (it->second.user.short_name[0] != '\0')) {
+        for (unsigned int i = 0; i < 4; i++) {
+            char c = it->second.user.short_name[i];
+            if (!noUnprintable || isprint(c)) {
+                s += c;
+            } else {
+                s += "?";
+            }
+        }
     }
 
     if (s.empty()) {
@@ -99,12 +116,12 @@ string SimpleClient::lookupShortName(uint32_t id) const
     return s;
 }
 
-string SimpleClient::getDisplayName(uint32_t id) const
+string SimpleClient::getDisplayName(uint32_t id, bool noUnprintable) const
 {
     stringstream ss;
 
-    ss << lookupShortName(id) << " (!" << hex << setfill('0') << setw(8)
-       << id << ")";
+    ss << lookupShortName(id, noUnprintable)
+       << " (!" << hex << setfill('0') << setw(8) << id << ")";
 
     return ss.str();
 }
@@ -112,11 +129,33 @@ string SimpleClient::getDisplayName(uint32_t id) const
 uint32_t SimpleClient::getId(const string &name) const
 {
     uint32_t id = 0xffffffffU;
+    uint32_t node_num = 0xffffffffU;
     map<uint8_t, meshtastic_Channel>::const_iterator it;
+
+    if ((name.size() > 0) && (name[0] == '!')) {
+        try {
+            string hexstr = name.substr(1);
+            node_num = static_cast<uint32_t>(std::stoul(hexstr, nullptr, 16));
+        } catch (const invalid_argument &e) {
+        } catch (const out_of_range &e) {
+        }
+    }
 
     for (map<uint32_t, meshtastic_NodeInfo>::const_iterator it =
              _nodeInfos.begin(); it != _nodeInfos.end(); it++) {
+        if (node_num == it->second.num) {
+            id = it->first;
+            break;
+        }
+
+        if (it->second.has_user == false) {
+            continue;
+        }
+
         if (name == it->second.user.short_name) {
+            id = it->first;
+            break;
+        } else if (name == it->second.user.long_name) {
             id = it->first;
             break;
         }

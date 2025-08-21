@@ -91,6 +91,7 @@ protected:
     virtual int wcfg(int argc, char **argv);
     virtual int disc(int argc, char **argv);
     virtual int hb(int argc, char **argv);
+    virtual int zerohops(int argc, char **argv);
     virtual int dm(int argc, char **argv);
     virtual int cm(int argc, char **argv);
     virtual int authchan(int argc, char **argv);
