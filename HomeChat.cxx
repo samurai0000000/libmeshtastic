@@ -70,9 +70,31 @@ void HomeChat::addPrintfCallback(const struct vprintf_callback &cb)
     }
 }
 
+void HomeChat::addPrintfCallback(
+    void *ctx, int (*vprintf)(void *, const char *, va_list))
+{
+    struct vprintf_callback cb = {
+        .ctx = ctx,
+        .vprintf = vprintf,
+    };
+
+    addPrintfCallback(cb);
+}
+
 void HomeChat::delPrintfCallback(const struct vprintf_callback &cb)
 {
     _vpfcb.erase(remove(_vpfcb.begin(), _vpfcb.end(), cb), _vpfcb.end());
+}
+
+void HomeChat::delPrintfCallback(
+    void *ctx, int (*vprintf)(void *, const char *, va_list))
+{
+    struct vprintf_callback cb = {
+        .ctx = ctx,
+        .vprintf = vprintf,
+    };
+
+    delPrintfCallback(cb);
 }
 
 void HomeChat::clearAuthchansAdminsMates(void)

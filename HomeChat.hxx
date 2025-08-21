@@ -35,7 +35,11 @@ public:
     virtual void setNvm(shared_ptr<BaseNvm> nvm);
 
     void addPrintfCallback(const struct vprintf_callback &cb);
+    void addPrintfCallback(void *ctx,
+                           int (*vprintf)(void *, const char *, va_list));
     void delPrintfCallback(const struct vprintf_callback &cb);
+    void delPrintfCallback(void *ctx,
+                           int (*vprintf)(void *, const char *, va_list));
 
     virtual void clearAuthchansAdminsMates(void);
     virtual bool addAuthChannel(const string &channel,
