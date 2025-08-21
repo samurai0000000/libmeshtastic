@@ -683,6 +683,9 @@ void MeshClient::run(void)
     int ret = 0;
     uint32_t timeout_ms = 1000;
     time_t last_heartbeat, last_want_config, now;
+    time_t currentTime;
+    tm *localTime;
+    int last_min = -1;
 
     now = time(NULL);
     last_heartbeat = now;
@@ -723,12 +726,24 @@ void MeshClient::run(void)
                 continue;
             }
         } while (ret > 0);
+
+        currentTime = time(NULL);
+        localTime = localtime(&currentTime);
+        if (last_min != localTime->tm_min) {
+            last_min = localTime->tm_min;
+            crontab(localTime);
+        }
     }
 
     sendDisconnect();
     mt_serial_detach(&_mtc);
 
     return;
+}
+
+void MeshClient::crontab(const struct tm *now)
+{
+    (void)(now);
 }
 
 /*

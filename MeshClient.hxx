@@ -340,6 +340,10 @@ protected:
     //map<uint32_t, meshtastic_HealthMetrics> _healthMetrics;
     //map<uint32_t, meshtastic_HostMetrics> _hostMetrics;
 
+protected:
+
+    virtual void crontab(const struct tm *now);
+
 private:
 
     void stop(void);
