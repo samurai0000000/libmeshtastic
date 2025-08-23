@@ -159,9 +159,9 @@ bool MeshNvm::loadNvm(void)
 
     try {
         cfg.readFile(_path.c_str());
-    } catch (FileIOException &e) {
+    } catch (const FileIOException &e) {
         return false;
-    } catch (ParseException &e) {
+    } catch (const ParseException &e) {
         return false;
     }
 
@@ -192,7 +192,7 @@ bool MeshNvm::loadNvm(void)
             memcpy(entry.name, name.c_str(), len);
             _nvm_authchans.push_back(entry);
         }
-    } catch (SettingNotFoundException &e) {
+    } catch (const SettingNotFoundException &e) {
     }
 
     try {
@@ -217,7 +217,7 @@ bool MeshNvm::loadNvm(void)
             }
             _nvm_admins.push_back(entry);
         }
-    } catch (SettingNotFoundException &e) {
+    } catch (const SettingNotFoundException &e) {
     }
 
     try {
@@ -242,7 +242,7 @@ bool MeshNvm::loadNvm(void)
             }
             _nvm_mates.push_back(entry);
         }
-    } catch (SettingNotFoundException &e) {
+    } catch (const SettingNotFoundException &e) {
     }
 
     result = true;
@@ -262,9 +262,9 @@ bool MeshNvm::saveNvm(void)
 
     try {
         cfg.readFile(_path.c_str());
-    } catch (FileIOException &e) {
+    } catch (const FileIOException &e) {
         return false;
-    } catch (ParseException &e) {
+    } catch (const ParseException &e) {
         return false;
     }
 

@@ -32,6 +32,7 @@ if (DEFINED PICO_PLATFORM)
     ${CMAKE_CURRENT_SOURCE_DIR}/HomeChat.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/BaseNvm.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleShell.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/MorseBuzzer.cxx
     )
 else ()
   FIND_PACKAGE(config++ QUIET)
@@ -49,6 +50,7 @@ else ()
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshNvm.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleShell.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/MeshShell.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/MorseBuzzer.cxx
     )
 endif ()
 
