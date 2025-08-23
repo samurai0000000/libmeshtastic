@@ -14,9 +14,9 @@
 #include <serial.h>
 #endif
 
-#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
-#define AVOID_STACK_VARIABLES
-#endif
+//#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
+//#define AVOID_STACK_VARIABLES
+//#endif
 
 #define PB_BUF_SIZE 512
 
