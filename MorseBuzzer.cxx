@@ -39,7 +39,7 @@ void MorseBuzzer::runMorseThread(void)
     _isRunning = true;
     while (_isRunning) {
         if (_text.empty()) {
-            sleepForMs(500);
+            sleepForMs(1000);
             continue;
         }
 

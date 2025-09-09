@@ -123,7 +123,6 @@ int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
     while (size > 0) {
         ret = serial_write(packet, size);
         if (ret == -1) {
-            console_printf("%s: write() returned %d!\n", ret);
             goto done;
         }
 
