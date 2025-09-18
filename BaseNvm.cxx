@@ -246,7 +246,8 @@ done:
     return result;
 }
 
-bool BaseNvm::addNvmMate(const string &name, const SimpleClient &client)
+bool BaseNvm::addNvmMate(const string &name, const SimpleClient &client,
+                         bool ignoreDup)
 {
     bool result = false;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
@@ -265,7 +266,9 @@ bool BaseNvm::addNvmMate(const string &name, const SimpleClient &client)
     }
 
     if (it != client.nodeInfos().end()) {
-        result = addNvmMate(it->second.num, it->second.user.public_key);
+        result = addNvmMate(it->second.num,
+                            it->second.user.public_key,
+                            ignoreDup);
     }
 
     return result;

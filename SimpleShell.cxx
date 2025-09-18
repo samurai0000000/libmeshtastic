@@ -662,6 +662,12 @@ int SimpleShell::admin(int argc, char **argv)
         this->printf("ok\n");
     } else if ((argc == 2) && (strcmp(argv[1], "clear") == 0)) {
         _nvm->clearNvmAdmins();
+        result = _nvm->saveNvm();
+        if (result == false) {
+            this->printf("saveNvm failed!\n");
+            ret = -1;
+            goto done;
+        }
         this->printf("ok\n");
     } else if ((argc > 3) && (strcmp(argv[1], "set") == 0)) {
         int i, pass = 0, fail = 0;
@@ -678,6 +684,12 @@ int SimpleShell::admin(int argc, char **argv)
             }
         }
         this->printf("added %u admins, %u failed to add\n", pass, fail);
+        result = _nvm->saveNvm();
+        if (result == false) {
+            this->printf("saveNvm failed!\n");
+            ret = -1;
+            goto done;
+        }
     } else {
         this->printf("syntax error!\n");
         ret = -1;
@@ -739,6 +751,12 @@ int SimpleShell::mate(int argc, char **argv)
         this->printf("ok\n");
     } else if ((argc == 2) && (strcmp(argv[1], "clear") == 0)) {
         _nvm->clearNvmMates();
+        result = _nvm->saveNvm();
+        if (result == false) {
+            this->printf("saveNvm failed!\n");
+            ret = -1;
+            goto done;
+        }
         this->printf("ok\n");
     } else if ((argc > 3) && (strcmp(argv[1], "set") == 0)) {
         int i, pass = 0, fail = 0;
@@ -755,6 +773,12 @@ int SimpleShell::mate(int argc, char **argv)
             }
         }
         this->printf("added %u mates, %u failed to add\n", pass, fail);
+        result = _nvm->saveNvm();
+        if (result == false) {
+            this->printf("saveNvm failed!\n");
+            ret = -1;
+            goto done;
+        }
     } else {
         this->printf("syntax error!\n");
         ret = -1;

@@ -67,7 +67,8 @@ public:
     bool addNvmMate(uint32_t node_num,
                     meshtastic_User_public_key_t pubkey,
                     bool ignoreDup = true);
-    bool addNvmMate(const string &name, const SimpleClient &client);
+    bool addNvmMate(const string &name, const SimpleClient &client,
+                    bool ignoreDup = true);
     bool delNvmMate(uint32_t node_num);
     bool delNvmMate(const string &name, const SimpleClient &client);
     void clearNvmMates(void);

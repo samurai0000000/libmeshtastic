@@ -249,6 +249,17 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     toLowercase(first_word);
 
     if (channelMessage &&
+        isAuthChannel(_client->getChannelName(packet.channel))) {
+        // on authorized channel, add sender as a mate (if not already)
+        if (_nvm->addNvmMate(_client->lookupShortName(packet.from),
+                             *_client,
+                             false)) {
+            _nvm->saveNvm();
+            syncFromNvm();
+        }
+    }
+
+    if (channelMessage &&
         ((first_word == _client->lookupShortName(_client->whoami())) ||
          (first_word == _client->lookupLongName(_client->whoami())) ||
          (first_word.find(_client->whoamiString()) != string::npos) ||
@@ -360,6 +371,39 @@ done:
             this->printf("my_reply to %s: %s\n",
                          _client->getDisplayName(packet.from).c_str(),
                          reply.c_str());
+        }
+    }
+
+    return result;
+}
+
+bool HomeChat::syncFromNvm(void)
+{
+    bool result = true;
+
+    clearAuthchansAdminsMates();
+
+    for (vector<struct nvm_authchan_entry>::const_iterator it =
+             _nvm->nvmAuthchans().begin(); it != _nvm->nvmAuthchans().end();
+         it++) {
+        if (addAuthChannel(it->name, it->psk) == false) {
+            result = false;
+        }
+    }
+
+    for (vector<struct nvm_admin_entry>::const_iterator it =
+             _nvm->nvmAdmins().begin(); it != _nvm->nvmAdmins().end();
+         it++) {
+        if (addAdmin(it->node_num, it->pubkey) == false) {
+            result = false;
+        }
+    }
+
+    for (vector<struct nvm_mate_entry>::const_iterator it =
+             _nvm->nvmMates().begin(); it != _nvm->nvmMates().end();
+         it++) {
+        if (addMate(it->node_num, it->pubkey) == false) {
+            result = false;
         }
     }
 
@@ -599,7 +643,7 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
             }
 
             if (_nvm->addNvmAuthChannel(tokens[2], *_client) &&
-                _nvm->saveNvm()) {
+                _nvm->saveNvm() && syncFromNvm()) {
                 result = true;
             } else {
                 result = false;
@@ -617,7 +661,7 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
             }
 
             if (_nvm->delNvmAuthChannel(tokens[2]) &&
-                _nvm->saveNvm()) {
+                _nvm->saveNvm() && syncFromNvm()) {
                 result = true;
             } else {
                 result = false;
@@ -644,6 +688,7 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
                 }
             }
             result = _nvm->saveNvm();
+            syncFromNvm();
 
             ss << "set " << pass << " authchan entries";
             if (fail > 0) {
@@ -703,7 +748,7 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
             }
 
             if (_nvm->addNvmAdmin(tokens[2], *_client) &&
-                _nvm->saveNvm()) {
+                _nvm->saveNvm() && syncFromNvm()) {
                 result = true;
             } else {
                 result = false;
@@ -721,7 +766,7 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
             }
 
             if (_nvm->delNvmAdmin(tokens[2], *_client) &&
-                _nvm->saveNvm()) {
+                _nvm->saveNvm() && syncFromNvm()) {
                 result = true;
             } else {
                 result = false;
@@ -748,6 +793,7 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
                 }
             }
             result = _nvm->saveNvm();
+            syncFromNvm();
 
             ss << "set " << pass << " admin entries";
             if (fail > 0) {
@@ -807,7 +853,7 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
             }
 
             if (_nvm->addNvmMate(tokens[2], *_client) &&
-                _nvm->saveNvm()) {
+                _nvm->saveNvm() && syncFromNvm()) {
                 result = true;
             } else {
                 result = false;
@@ -825,7 +871,7 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
             }
 
             if (_nvm->delNvmMate(tokens[2], *_client) &&
-                _nvm->saveNvm()) {
+                _nvm->saveNvm() && syncFromNvm()) {
                 result = true;
             } else {
                 result = false;
@@ -852,6 +898,7 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
                 }
             }
             result = _nvm->saveNvm();
+            syncFromNvm();
 
             ss << "set " << pass << " mate entries";
             if (fail > 0) {

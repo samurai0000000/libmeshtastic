@@ -61,6 +61,7 @@ public:
 
 protected:
 
+    virtual bool syncFromNvm(void);
     virtual void getAuthority(uint32_t node_num,
                               bool &isAdmin, bool &isMate) const;
     virtual void setLastMessageFrom(uint32_t node_num, const string &message);
