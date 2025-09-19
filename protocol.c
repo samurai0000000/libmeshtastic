@@ -14,36 +14,15 @@
 #include <serial.h>
 #endif
 
-//#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
-//#define AVOID_STACK_VARIABLES
-//#endif
-
 #define PB_BUF_SIZE 512
-
-/*
- * On memory constrained MCUs such as a Pi Pico, the stack size is small
- * and we must avoid allocating variables on it. They are declared as
- * global static variables instead. Since the caller is likely running
- * a bare-metal code without using threads, there should not be concurrent
- * access issues on those platforms.
- */
-#if defined(AVOID_STACK_VARIABLES)
-static uint8_t pb_buf[sizeof(struct mt_pb_header) + PB_BUF_SIZE];
-static pb_istream_t istream;
-static pb_ostream_t ostream;
-static meshtastic_FromRadio from_radio;
-static meshtastic_ToRadio to_radio;
-#endif
 
 int mt_recv_packet(struct mt_client *mtc, uint8_t *packet, size_t size)
 {
     int ret = 0;
     struct mt_pb_header *header = (struct mt_pb_header *) packet;
     uint16_t mt_pb_len;
-#if !defined(AVOID_STACK_VARIABLES)
     pb_istream_t istream;
     meshtastic_FromRadio from_radio;
-#endif
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -99,10 +78,8 @@ static int mt_send_to_radio(struct mt_client *mtc,
                             meshtastic_ToRadio *to_radio)
 {
     int ret = 0;
-#if !defined(AVOID_STACK_VARIABLES)
     uint8_t pb_buf[sizeof(struct mt_pb_header) + PB_BUF_SIZE];
     pb_ostream_t ostream;
-#endif
     struct mt_pb_header *header = (struct mt_pb_header *) pb_buf;
 
     if (mtc == NULL) {
@@ -185,9 +162,7 @@ done:
 int mt_send_disconnect(struct mt_client *mtc)
 {
     int ret = 0;
-#if !defined(AVOID_STACK_VARIABLES)
     meshtastic_ToRadio to_radio;
-#endif
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -208,9 +183,7 @@ done:
 int mt_send_heartbeat(struct mt_client *mtc)
 {
     int ret = 0;
-#if !defined(AVOID_STACK_VARIABLES)
     meshtastic_ToRadio to_radio;
-#endif
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -232,9 +205,7 @@ int mt_send_want_config(struct mt_client *mtc)
 {
     static int __seeded_rand = 0;
     int ret = 0;
-#if !defined(AVOID_STACK_VARIABLES)
     meshtastic_ToRadio to_radio;
-#endif
 
     if (!__seeded_rand) {
         srand(time(NULL));
@@ -265,9 +236,7 @@ int mt_text_message(struct mt_client *mtc,
 {
     int ret = 0;
     size_t message_len = 0;
-#if !defined(AVOID_STACK_VARIABLES)
     meshtastic_ToRadio to_radio;
-#endif
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -365,9 +334,7 @@ done:
 int mt_admin_message_reboot(struct mt_client *mtc, uint32_t seconds)
 {
     int ret = 0;
-#if !defined(AVOID_STACK_VARIABLES)
     meshtastic_ToRadio to_radio;
-#endif
 
     if (mtc == NULL) {
         errno = EINVAL;
