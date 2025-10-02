@@ -6,9 +6,8 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include <hardware/uart.h>
+#include <pico-plat.h>
 #include <libmeshtastic.h>
-#include <serial.h>
 
 int mt_serial_attach(struct mt_client *mtc, const char *device)
 {
@@ -87,8 +86,8 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
         should_read = 1;
     }
 
-    if (serial_rx_ready() >= 0) {
-        ret = serial_read(mtc->inbuf + mtc->inbuf_len, should_read);
+    if (serial1_rx_ready() >= 0) {
+        ret = serial1_read(mtc->inbuf + mtc->inbuf_len, should_read);
     } else {
         ret = 0;
     }
@@ -121,7 +120,7 @@ int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
     (void)(mtc);
 
     while (size > 0) {
-        ret = serial_write(packet, size);
+        ret = serial1_write(packet, size);
         if (ret == -1) {
             goto done;
         }

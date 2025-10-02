@@ -10,9 +10,13 @@
 #include <errno.h>
 #include <time.h>
 #include <libmeshtastic.h>
-#if defined(LIB_PICO_PLATFORM) || defined(ESP_PLATFORM)
+
+#if defined(ESP_PLATFORM)
 #include <serial.h>
+#elif defined(LIB_PICO_PLATFORM)
+#include <pico-plat.h>
 #endif
+
 
 #define PB_BUF_SIZE 512
 

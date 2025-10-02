@@ -211,6 +211,7 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     bool result = false;
     bool directMessage = false;
     bool channelMessage = false;
+    bool fromAuthChan = false;
     bool addressed2Me = false;
     string message = _message;
     string first_word;
@@ -250,6 +251,8 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
 
     if (channelMessage &&
         isAuthChannel(_client->getChannelName(packet.channel))) {
+        fromAuthChan = true;
+
         // on authorized channel, add sender as a mate (if not already)
         if (_nvm->addNvmMate(_client->lookupShortName(packet.from),
                              *_client,
@@ -273,13 +276,15 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
     getAuthority(packet.from, isAdmin, isMate);
 
     // rollcall on channel
-    if (channelMessage && (first_word == "rollcall") && (isAdmin || isMate)) {
+    if (channelMessage && (first_word == "rollcall") &&
+        (isAdmin || isMate || fromAuthChan)) {
         reply = handleRollcall(packet.from, message);
         goto done;
     }
 
     // check for authority
-    if ((directMessage || addressed2Me) && !isAdmin && !isMate) {
+    if ((directMessage || addressed2Me) &&
+        !isAdmin && !isMate && !fromAuthChan) {
         if (first_word != "all") {
             if (message != getLastMessageFrom(packet.from)) {
                 reply = _client->lookupShortName(packet.from) +

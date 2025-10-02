@@ -54,20 +54,21 @@ public:
         _noEcho = noEcho;
     }
 
-    inline virtual void attach(void *ctx, bool showWelcome = false) {
+    inline virtual void attach(void *ctx) {
         _ctx = ctx;
-        if (showWelcome) {
-            this->printf("\n\x1b[2K");
-            this->printf("%s\n", _banner.c_str());
-            this->printf("%s\n", _version.c_str());
-            this->printf("%s\n", _built.c_str());
-            this->printf("-------------------------------------------\n");
-            this->printf("%s\n", _copyright.c_str());
-            this->printf("> ");
-        }
     }
     inline virtual void detach(void) {
         _ctx = NULL;
+    }
+
+    inline void showWelcome(void) {
+        this->printf("\n\x1b[2K");
+        this->printf("%s\n", _banner.c_str());
+        this->printf("%s\n", _version.c_str());
+        this->printf("%s\n", _built.c_str());
+        this->printf("-------------------------------------------\n");
+        this->printf("%s\n", _copyright.c_str());
+        this->printf("> ");
     }
 
     virtual int process(void);

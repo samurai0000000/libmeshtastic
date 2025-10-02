@@ -20,6 +20,9 @@ public:
 
     void clearMorseText(void);
     void addMorseText(const string &text);
+    inline bool isMorseEmpty(void) const {
+        return _text.empty();
+    }
 
     void runMorseThread(void);
     void stopMorseThread(void);
