@@ -261,11 +261,11 @@ int SimpleShell::version(int argc, char **argv)
     (void)(argc);
     (void)(argv);
 
-    this->printf("%s\n", _banner.c_str());
-    this->printf("%s\n", _version.c_str());
-    this->printf("%s\n", _built.c_str());
+    this->printf("%s\n", _client->banner().c_str());
+    this->printf("%s\n", _client->version().c_str());
+    this->printf("%s\n", _client->built().c_str());
     this->printf("-------------------------------------------\n");
-    this->printf("%s\n", _copyright.c_str());
+    this->printf("%s\n", _client->copyright().c_str());
 
     return ret;
 }

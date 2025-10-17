@@ -24,6 +24,32 @@ public:
     SimpleClient();
     ~SimpleClient();
 
+    inline void setBanner(const string &banner) {
+        _banner = banner;
+    }
+    inline void setVersion(const string &version) {
+        _version = version;
+    }
+    inline void setBuilt(const string &built) {
+        _built = built;
+    }
+    inline void setCopyright(const string &copyright) {
+        _copyright = copyright;
+    }
+
+    inline const string &banner(void) const {
+        return _banner;
+    }
+    inline const string &version(void) const {
+        return _version;
+    }
+    inline const string &built(void) const {
+        return _built;
+    }
+    inline const string &copyright(void) const {
+        return _copyright;
+    }
+
     virtual void clear(void);
 
     uint32_t whoami(void) const;
@@ -220,6 +246,11 @@ public:
     }
 
 protected:
+
+    string _banner;
+    string _version;
+    string _built;
+    string _copyright;
 
     uint32_t _dmRx;
     uint32_t _dmTx;

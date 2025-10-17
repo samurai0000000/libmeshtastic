@@ -21,32 +21,6 @@ public:
     SimpleShell(shared_ptr<SimpleClient> client = NULL);
     ~SimpleShell();
 
-    inline void setBanner(const string &banner) {
-        _banner = banner;
-    }
-    inline void setVersion(const string &version) {
-        _version = version;
-    }
-    inline void setBuilt(const string &built) {
-        _built = built;
-    }
-    inline void setCopyright(const string &copyright) {
-        _copyright = copyright;
-    }
-
-    inline const string &banner(void) const {
-        return _banner;
-    }
-    inline const string &version(void) const {
-        return _version;
-    }
-    inline const string &built(void) const {
-        return _built;
-    }
-    inline const string &copyright(void) const {
-        return _copyright;
-    }
-
     virtual void setClient(shared_ptr<SimpleClient> client);
     virtual void setNvm(shared_ptr<BaseNvm> nvm);
 
@@ -63,11 +37,11 @@ public:
 
     inline void showWelcome(void) {
         this->printf("\n\x1b[2K");
-        this->printf("%s\n", _banner.c_str());
-        this->printf("%s\n", _version.c_str());
-        this->printf("%s\n", _built.c_str());
+        this->printf("%s\n", _client->banner().c_str());
+        this->printf("%s\n", _client->version().c_str());
+        this->printf("%s\n", _client->built().c_str());
         this->printf("-------------------------------------------\n");
-        this->printf("%s\n", _copyright.c_str());
+        this->printf("%s\n", _client->copyright().c_str());
         this->printf("> ");
     }
 
@@ -102,11 +76,6 @@ protected:
     virtual int unknown_command(int argc, char **argv);
 
     time_t _since;
-
-    string _banner;
-    string _version;
-    string _built;
-    string _copyright;
 
     vector<string> _help_list;
 

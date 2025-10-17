@@ -304,6 +304,12 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
+    // version
+    if ((directMessage || addressed2Me) && (message == "version")) {
+        reply = handleVersion(packet.from, message);
+        goto done;
+    }
+
     // zerohops
     if ((directMessage || addressed2Me) && (message == "zerohops")) {
         reply = handleZeroHops(packet.from, message);
@@ -514,6 +520,28 @@ string HomeChat::handleUptime(uint32_t node_num, string &message)
     }
 
     return string(buf);
+}
+
+string HomeChat::handleVersion(uint32_t node_num, string &message)
+{
+    string v;
+
+    (void)(node_num);
+    (void)(message);
+
+    if (_client->banner().empty() &&
+        _client->version().empty() &&
+        _client->built().empty() &&
+        _client->copyright().empty()) {
+        v = "unknown!";
+    } else {
+        v = _client->banner() + "\n" +
+            _client->version() + "\n" +
+            _client->built() + "\n" +
+            _client->copyright();
+    }
+
+    return v;
 }
 
 string HomeChat::handleZeroHops(uint32_t node_num, string &message)

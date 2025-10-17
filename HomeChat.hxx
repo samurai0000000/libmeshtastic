@@ -69,6 +69,7 @@ protected:
 
     virtual string handleRollcall(uint32_t node_num, string &message);
     virtual string handleUptime(uint32_t node_num, string &message);
+    virtual string handleVersion(uint32_t node_num, string &message);
     virtual string handleZeroHops(uint32_t node_num, string &message);
     virtual string handleNodes(uint32_t node_num, string &message);
     virtual string handleMeshStats(uint32_t node_num, string &message);
