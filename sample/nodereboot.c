@@ -12,45 +12,35 @@
 #include <stdio.h>
 #include <libmeshtastic.h>
 
+static uint32_t my_node_num = 0;
+static uint32_t reboot_seconds = 5;
+
 static void mt_handler(struct mt_client *mtc, const void *packet, size_t size,
                        const meshtastic_FromRadio *from_radio)
 {
     int ret;
 
-    (void)(mtc);
     (void)(packet);
     (void)(size);
 
     switch (from_radio->which_payload_variant) {
-    case meshtastic_FromRadio_packet_tag:
-        if ((from_radio->packet.which_payload_variant ==
-             meshtastic_MeshPacket_decoded_tag) &&
-            (from_radio->packet.decoded.portnum ==
-             meshtastic_PortNum_ADMIN_APP)) {
-            pb_istream_t stream;
-            meshtastic_AdminMessage admmsg;
-            stream = pb_istream_from_buffer(
-                from_radio->packet.decoded.payload.bytes,
-                from_radio->packet.decoded.payload.size);
-            ret = pb_decode(&stream, meshtastic_AdminMessage_fields, &admmsg);
-            if (ret == 1) {
-                if (admmsg.which_payload_variant ==
-                    meshtastic_AdminMessage_get_device_metadata_response_tag) {
-                }
-            } else {
-                fprintf(stderr, "pb_decode admmsg failed!\n");
-                exit(EXIT_FAILURE);
-            }
-        }
+    case meshtastic_FromRadio_my_info_tag:
+        my_node_num = from_radio->my_info.my_node_num;
         break;
     case meshtastic_FromRadio_config_complete_id_tag:
-        printf("device_metadata_request\n");
-        ret = mt_admin_message_device_metadata_request(mtc);
-        if (ret != 0) {
-            fprintf(stderr, "failed!\n");
+        if (my_node_num == 0) {
+            fprintf(stderr, "node number unknown!\n");
             exit(EXIT_FAILURE);
         }
- 	    break;
+        printf("Rebooting !%.8x in %u seconds\n",
+               my_node_num, reboot_seconds);
+        ret = mt_admin_message_reboot(mtc, my_node_num, reboot_seconds);
+        if (ret != 0) {
+            fprintf(stderr, "reboot failed: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_SUCCESS);
+        break;
     default:
         break;
     }
@@ -75,6 +65,7 @@ static void cleanup(void)
 
 static const struct option long_options[] = {
     { "device", required_argument, NULL, 'd', },
+    { "seconds", required_argument, NULL, 's', },
 };
 
 int main(int argc, char **argv)
@@ -84,7 +75,7 @@ int main(int argc, char **argv)
 
     for (;;) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "d:",
+        int c = getopt_long(argc, argv, "d:s:",
                             long_options, &option_index);
         if (c == -1) {
             break;
@@ -93,6 +84,9 @@ int main(int argc, char **argv)
         switch (c) {
         case 'd':
             device = optarg;
+            break;
+        case 's':
+            reboot_seconds = (uint32_t) strtoul(optarg, NULL, 0);
             break;
         default:
             fprintf(stderr, "Unrecognized argument specified!\n");

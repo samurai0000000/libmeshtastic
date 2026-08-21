@@ -4,6 +4,7 @@
  * Copyright (C) 2025, Charles Chiou
  */
 
+#include <stdlib.h>
 #include <SimpleShell.hxx>
 
 SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
@@ -297,10 +298,27 @@ int SimpleShell::system(int argc, char **argv)
 int SimpleShell::reboot(int argc, char **argv)
 {
     int ret = 0;
+    unsigned int seconds = 0;
 
-    (void)(argc);
-    (void)(argv);
-    this->printf("not implemented\n");
+    if (!_client->isConnected()) {
+        this->printf("Not connected\n");
+        ret = -1;
+        goto done;
+    }
+
+    if (argc > 1) {
+        seconds = (unsigned int) strtoul(argv[1], NULL, 0);
+    }
+
+    if (_client->adminMessageReboot(seconds) != true) {
+        this->printf("failed!\n");
+        ret = -1;
+        goto done;
+    }
+
+    this->printf("Rebooting in %u seconds\n", seconds);
+
+done:
 
     return ret;
 }

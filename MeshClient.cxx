@@ -177,7 +177,7 @@ bool MeshClient::adminMessageReboot(unsigned int seconds)
     bool result = false;
 
     _mutex.lock();
-    result = (mt_admin_message_reboot(&_mtc, seconds) == 0);
+    result = SimpleClient::adminMessageReboot(seconds);
     _mutex.unlock();
 
     return result;

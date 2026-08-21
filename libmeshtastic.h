@@ -86,7 +86,7 @@ extern int mt_text_message(struct mt_client *mtc,
 extern int mt_admin_message_device_metadata_request(
     struct mt_client *mtc);
 extern int mt_admin_message_reboot(struct mt_client *mtc,
-                                   uint32_t seconds);
+                                   uint32_t dest, uint32_t seconds);
 
 extern time_t mt_impl_now(void);
 

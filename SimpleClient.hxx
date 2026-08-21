@@ -69,6 +69,7 @@ public:
 
     bool textMessage(uint32_t dest, uint8_t channel, const string &message,
                      unsigned int hop_start = 3, bool want_ack = false);
+    bool adminMessageReboot(unsigned int seconds = 0);
 
 public:
 

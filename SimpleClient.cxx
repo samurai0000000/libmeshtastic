@@ -406,6 +406,11 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
     return result;
 }
 
+bool SimpleClient::adminMessageReboot(unsigned int seconds)
+{
+    return (mt_admin_message_reboot(&_mtc, whoami(), seconds) == 0);
+}
+
 void SimpleClient::gotConfig(const meshtastic_Config &config)
 {
     switch (config.which_payload_variant) {
