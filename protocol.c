@@ -256,6 +256,7 @@ int mt_text_message(struct mt_client *mtc,
 
     if (hop_start > 7) {
         errno = EINVAL;
+        ret = -1;
         goto done;
     }
 
@@ -295,8 +296,6 @@ int mt_admin_message_device_metadata_request(struct mt_client *mtc)
 {
     int ret = 0;
     meshtastic_ToRadio to_radio;
-    meshtastic_Data data;
-    meshtastic_MeshPacket packet;
     meshtastic_AdminMessage admin_message;
     pb_ostream_t ostream;
 
@@ -311,22 +310,22 @@ int mt_admin_message_device_metadata_request(struct mt_client *mtc)
         meshtastic_AdminMessage_get_device_metadata_request_tag;
     admin_message.get_device_metadata_request = true;
 
-    bzero(&data, sizeof(data));
-    data.portnum = meshtastic_PortNum_ADMIN_APP;
-    data.want_response = true;
-    ostream = pb_ostream_from_buffer(data.payload.bytes, sizeof(data.payload));
+    bzero(&to_radio, sizeof(to_radio));
+    to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
+    to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
+    to_radio.packet.id = rand() & 0x7fffffff;
+    to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.decoded.want_response = true;
+
+    ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
+                                     sizeof(to_radio.packet.decoded.payload.bytes));
     ret = pb_encode(&ostream, meshtastic_AdminMessage_fields, &admin_message);
     if (ret != 1) {
         errno = EIO;
         ret = -1;
         goto done;
     }
-
-    memcpy(&packet.decoded, &data, sizeof(data));
-
-    bzero(&to_radio, sizeof(to_radio));
-    to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
-    memcpy(&to_radio.packet, &packet, sizeof(packet));
+    to_radio.packet.decoded.payload.size = ostream.bytes_written;
 
     ret = mt_send_to_radio(mtc, &to_radio);
 
