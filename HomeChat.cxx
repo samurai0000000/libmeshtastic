@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cctype>
+#include <cstring>
 #include <algorithm>
 #include <functional>
 #include <HomeChat.hxx>
@@ -254,7 +255,8 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         fromAuthChan = true;
 
         // on authorized channel, add sender as a mate (if not already)
-        if (_nvm->addNvmMate(_client->lookupShortName(packet.from),
+        if ((_nvm != NULL) &&
+            _nvm->addNvmMate(_client->lookupShortName(packet.from),
                              *_client,
                              false)) {
             _nvm->saveNvm();
@@ -392,12 +394,17 @@ bool HomeChat::syncFromNvm(void)
 {
     bool result = true;
 
+    if (_nvm == NULL) {
+        return false;
+    }
+
     clearAuthchansAdminsMates();
 
     for (vector<struct nvm_authchan_entry>::const_iterator it =
              _nvm->nvmAuthchans().begin(); it != _nvm->nvmAuthchans().end();
          it++) {
-        if (addAuthChannel(it->name, it->psk) == false) {
+        string name(it->name, strnlen(it->name, sizeof(it->name)));
+        if (addAuthChannel(name, it->psk) == false) {
             result = false;
         }
     }
@@ -669,6 +676,11 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
             ss << it->first;
         }
     } else {
+        if (_nvm == NULL) {
+            ss << "nvm is not configured!";
+            goto done;
+        }
+
         if ((tokens.size() == 3) && (tokens[1] == "add")) {
             if (isAdmin == false) {
                 isViolated = true;
@@ -774,6 +786,11 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
             ss << _client->getDisplayName(it->first);
         }
     } else {
+        if (_nvm == NULL) {
+            ss << "nvm is not configured!";
+            goto done;
+        }
+
         if ((tokens.size() == 3) && (tokens[1] == "add")) {
             if (isAdmin == false) {
                 isViolated = true;
@@ -879,6 +896,11 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
             ss << _client->getDisplayName(it->first);
         }
     } else {
+        if (_nvm == NULL) {
+            ss << "nvm is not configured!";
+            goto done;
+        }
+
         if ((tokens.size() == 3) && (tokens[1] == "add")) {
             if (isAdmin == false) {
                 isViolated = true;
@@ -1025,10 +1047,20 @@ int HomeChat::printf(const char *format, ...) const
     va_list ap;
 
     va_start(ap, format);
-    ret = this->vprintf(format, ap);
+    {
+        va_list ap_copy;
+
+        va_copy(ap_copy, ap);
+        ret = this->vprintf(format, ap_copy);
+        va_end(ap_copy);
+    }
     for (vector<struct vprintf_callback>::const_iterator it = _vpfcb.begin();
          it != _vpfcb.end(); it++) {
-        it->vprintf(it->ctx, format, ap);
+        va_list ap_copy;
+
+        va_copy(ap_copy, ap);
+        it->vprintf(it->ctx, format, ap_copy);
+        va_end(ap_copy);
     }
     va_end(ap);
 

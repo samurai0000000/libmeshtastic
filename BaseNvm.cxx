@@ -7,6 +7,39 @@
 #include <cstring>
 #include <BaseNvm.hxx>
 
+static bool nvm_name_eq(const char name[12], const string &channel)
+{
+    size_t nlen = strnlen(name, 12);
+
+    return (channel.size() == nlen) &&
+        (memcmp(name, channel.c_str(), nlen) == 0);
+}
+
+static bool nvm_match_node(const SimpleClient &client, uint32_t num,
+                           const string &name)
+{
+    string id = client.idString(num);
+    string hexid = id;
+
+    if (!hexid.empty() && (hexid[0] == '!')) {
+        hexid.erase(0, 1);
+    }
+
+    if ((name == id) || (name == hexid)) {
+        return true;
+    }
+
+    if (name == client.lookupShortName(num)) {
+        return true;
+    }
+
+    if (name == client.lookupLongName(num)) {
+        return true;
+    }
+
+    return false;
+}
+
 BaseNvm::BaseNvm()
 {
 
@@ -30,8 +63,13 @@ bool BaseNvm::addNvmAuthChannel(const string &channel,
         goto done;
     }
 
+    if (psk.size > sizeof(entry.psk.bytes)) {
+        result = false;
+        goto done;
+    }
+
     for (it = _nvm_authchans.begin(); it != _nvm_authchans.end(); it++) {
-        if (channel == it->name) {
+        if (nvm_name_eq(it->name, channel)) {
             if (ignoreDup == false) {
                 result = false;
                 goto done;
@@ -86,7 +124,7 @@ bool BaseNvm::delNvmAuthChannel(const string &channel)
     vector<struct nvm_authchan_entry>::iterator it;
 
     for (it = _nvm_authchans.begin(); it != _nvm_authchans.end(); it++) {
-        if (channel == it->name) {
+        if (nvm_name_eq(it->name, channel)) {
             _nvm_authchans.erase(it);
             return true;
         }
@@ -120,6 +158,10 @@ bool BaseNvm::addNvmAdmin(uint32_t node_num,
 
     memset(&entry, 0x0, sizeof(entry));
     entry.node_num = node_num;
+    if (pubkey.size > sizeof(entry.pubkey.bytes)) {
+        result = false;
+        goto done;
+    }
     entry.pubkey.size = pubkey.size;
     memcpy(entry.pubkey.bytes, pubkey.bytes, pubkey.size);
 
@@ -150,11 +192,7 @@ bool BaseNvm::addNvmAdmin(const string &name, const SimpleClient &client)
         if (it->second.has_user != true) {
             continue;
         }
-        string id = client.idString(it->second.num);
-        string exid = "!" + id;
-        if ((name == id) || (name == exid) ||
-            (name == client.lookupShortName(it->second.num)) ||
-            (name == client.lookupLongName(it->second.num))) {
+        if (nvm_match_node(client, it->second.num, name)) {
             break;
         }
     }
@@ -189,11 +227,7 @@ bool BaseNvm::delNvmAdmin(const string &name, const SimpleClient &client)
         if (it->second.has_user != true) {
             continue;
         }
-        string id = client.idString(it->second.num);
-        string exid = "!" + id;
-        if ((name == id) || (name == exid) ||
-            (name == client.lookupShortName(it->second.num)) ||
-            (name == client.lookupLongName(it->second.num))) {
+        if (nvm_match_node(client, it->second.num, name)) {
             break;
         }
     }
@@ -230,6 +264,10 @@ bool BaseNvm::addNvmMate(uint32_t node_num,
 
     memset(&entry, 0x0, sizeof(entry));
     entry.node_num = node_num;
+    if (pubkey.size > sizeof(entry.pubkey.bytes)) {
+        result = false;
+        goto done;
+    }
     entry.pubkey.size = pubkey.size;
     memcpy(entry.pubkey.bytes, pubkey.bytes, pubkey.size);
 
@@ -256,11 +294,7 @@ bool BaseNvm::addNvmMate(const string &name, const SimpleClient &client,
         if (it->second.has_user != true) {
             continue;
         }
-        string id = client.idString(it->second.num);
-        string exid = "!" + id;
-        if ((name == id) || (name == exid) ||
-            (name == client.lookupShortName(it->second.num)) ||
-            (name == client.lookupLongName(it->second.num))) {
+        if (nvm_match_node(client, it->second.num, name)) {
             break;
         }
     }
@@ -297,11 +331,7 @@ bool BaseNvm::delNvmMate(const string &name, const SimpleClient &client)
         if (it->second.has_user != true) {
             continue;
         }
-        string id = client.idString(it->second.num);
-        string exid = "!" + id;
-        if ((name == id) || (name == exid) ||
-            (name == client.lookupShortName(it->second.num)) ||
-            (name == client.lookupLongName(it->second.num))) {
+        if (nvm_match_node(client, it->second.num, name)) {
             break;
         }
     }

@@ -6,7 +6,9 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -18,6 +20,7 @@ using namespace libconfig;
 MeshNvm::MeshNvm()
 {
     _node_num = 0x0U;
+    _changed = false;
 }
 
 MeshNvm::~MeshNvm()
@@ -32,17 +35,19 @@ bool MeshNvm::setupFor(uint32_t node_num)
     string path;
     char node_num_hex[16];
     int fd;
+    const char *home_env;
 
     if (node_num == 0x0U || node_num == (uint32_t) (-1)) {
         result = false;
         goto done;
     }
 
-    home = getenv("HOME");
-    if (home.empty()) {
+    home_env = getenv("HOME");
+    if ((home_env == NULL) || (home_env[0] == '\0')) {
         result = false;
         goto done;
     }
+    home = home_env;
 
     snprintf(node_num_hex, sizeof(node_num_hex) - 1, "%.8x", node_num);
     path = home + "/.libmeshtastic." + node_num_hex;
@@ -59,7 +64,27 @@ bool MeshNvm::setupFor(uint32_t node_num)
         fd = -1;
     }
 
+    {
+        struct stat st;
+
+        if ((stat(path.c_str(), &st) == 0) && (st.st_size == 0)) {
+            Config cfg;
+            Setting &root = cfg.getRoot();
+
+            root.add("authchans", Setting::TypeList);
+            root.add("admins", Setting::TypeList);
+            root.add("mates", Setting::TypeList);
+            try {
+                cfg.writeFile(path.c_str());
+            } catch (const FileIOException &e) {
+                result = false;
+                goto done;
+            }
+        }
+    }
+
     _path = path;
+    _node_num = node_num;
     result = true;
 
 done:
@@ -127,7 +152,7 @@ static string psk_to_string(const meshtastic_ChannelSettings_psk_t psk)
     stringstream ss;
     unsigned int i;
 
-    for (i = 0; i < psk.size; i++) {
+    for (i = 0; (i < psk.size) && (i < sizeof(psk.bytes)); i++) {
         ss << hex << setfill('0') << setw(2)
            << static_cast<unsigned int>(psk.bytes[i]);
     }
@@ -140,7 +165,7 @@ static string pubkey_to_string(const meshtastic_User_public_key_t pubkey)
     stringstream ss;
     unsigned int i;
 
-    for (i = 0; i < pubkey.size; i++) {
+    for (i = 0; (i < pubkey.size) && (i < sizeof(pubkey.bytes)); i++) {
         ss << hex << setfill('0') << setw(2)
            << static_cast<unsigned int>(pubkey.bytes[i]);
     }
@@ -263,9 +288,9 @@ bool MeshNvm::saveNvm(void)
     try {
         cfg.readFile(_path.c_str());
     } catch (const FileIOException &e) {
-        return false;
+        /* Missing or unreadable file: write a new config. */
     } catch (const ParseException &e) {
-        return false;
+        /* Empty or invalid file: write a new config. */
     }
 
     Setting &root = cfg.getRoot();
@@ -276,7 +301,8 @@ bool MeshNvm::saveNvm(void)
     for (vector<struct nvm_authchan_entry>::const_iterator it =
              _nvm_authchans.begin(); it != _nvm_authchans.end(); it++) {
         Setting &authchan = authchans.add(Setting::TypeGroup);
-        authchan.add("name", Setting::TypeString) = it->name;
+        string name(it->name, strnlen(it->name, sizeof(it->name)));
+        authchan.add("name", Setting::TypeString) = name;
         authchan.add("psk", Setting::TypeString) = psk_to_string(it->psk);
     }
     if (root.exists("admins")) {
