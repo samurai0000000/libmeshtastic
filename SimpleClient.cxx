@@ -12,6 +12,7 @@
 SimpleClient::SimpleClient()
 {
     bzero(&_mtc, sizeof(_mtc));
+    _mtc.fd = -1;
     _mtc.handler = this->mtEvent;
     _mtc.ctx = this;
     _isConnected = false;

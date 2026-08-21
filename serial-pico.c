@@ -61,17 +61,24 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
 
     if ((mt_pb_header->start1 == MT_PB_START1) &&
         (mt_pb_header->start2 == MT_PB_START2) &&
-        (mtc->inbuf_len < sizeof(struct mt_pb_header))) {
+        (mtc->inbuf_len >= sizeof(struct mt_pb_header)) &&
+        (mt_pb_len >
+         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header)))) {
+        /* Claimed payload does not fit; drop the frame and resync */
+        mt_log_append(mtc, mtc->inbuf, mtc->inbuf_len);
+        mtc->inbuf_len = 0;
+        should_read = 1;
+    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
+               (mt_pb_header->start2 == MT_PB_START2) &&
+               (mtc->inbuf_len < sizeof(struct mt_pb_header))) {
         /* Header is sane but missing length, look for mt_pb_len */
         should_read = sizeof(struct mt_pb_header) - mtc->inbuf_len;
     } else if ((mt_pb_header->start1 == MT_PB_START1) &&
                (mt_pb_header->start2 == MT_PB_START2) &&
-               ((mtc->inbuf_len > sizeof(struct mt_pb_header)) ||
-                (mt_pb_len <
-                 (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))))) {
+               (mtc->inbuf_len >= sizeof(struct mt_pb_header))) {
         /* Header is sane, we should read till the packet is filled */
-        should_read = mt_pb_len -
-            (mtc->inbuf_len - sizeof(struct mt_pb_header));
+        should_read = (sizeof(struct mt_pb_header) + mt_pb_len) -
+            mtc->inbuf_len;
     } else if (mtc->inbuf_len == 0) {
         /* Look for START1 */
         should_read = 1;
@@ -86,17 +93,44 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
         should_read = 1;
     }
 
+    if ((mt_pb_header->start1 == MT_PB_START1) &&
+        (mt_pb_header->start2 == MT_PB_START2) &&
+        (mtc->inbuf_len >= sizeof(struct mt_pb_header)) &&
+        (mt_pb_len <=
+         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) &&
+        (mtc->inbuf_len == (sizeof(struct mt_pb_header) + mt_pb_len))) {
+        ret = mt_recv_packet(mtc, mtc->inbuf, mtc->inbuf_len);
+        mtc->inbuf_len = 0;
+        mtc->inbuf[0] = 0x0;
+        mtc->inbuf[1] = 0x0;
+        goto done;
+    }
+
+    if (should_read == 0) {
+        ret = 0;
+        goto done;
+    }
+
     if (serial1_rx_ready() >= 0) {
         ret = serial1_read(mtc->inbuf + mtc->inbuf_len, should_read);
     } else {
         ret = 0;
     }
 
-    mtc->inbuf_len += ret;
+    if (ret < 0) {
+        goto done;
+    } else if (ret == 0) {
+        ret = 0;
+        goto done;
+    }
+
+    mtc->inbuf_len += (size_t) ret;
     mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;
 
     if ((mt_pb_header->start1 == MT_PB_START1) &&
         (mt_pb_header->start2 == MT_PB_START2) &&
+        (mt_pb_len <=
+         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) &&
         (mtc->inbuf_len == (sizeof(struct mt_pb_header) + mt_pb_len))) {
         ret = mt_recv_packet(mtc, mtc->inbuf, mtc->inbuf_len);
         mtc->inbuf_len = 0;
