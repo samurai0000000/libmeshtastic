@@ -538,13 +538,17 @@ string HomeChat::handleVersion(uint32_t node_num, string &message)
 
     if (_client->banner().empty() &&
         _client->version().empty() &&
+        _client->firmwareVersion().empty() &&
         _client->built().empty() &&
         _client->copyright().empty()) {
         v = "unknown!";
     } else {
         v = _client->banner() + "\n" +
-            _client->version() + "\n" +
-            _client->built() + "\n" +
+            _client->version() + "\n";
+        if (!_client->firmwareVersion().empty()) {
+            v += "Meshtastic firmware: " + _client->firmwareVersion() + "\n";
+        }
+        v += _client->built() + "\n" +
             _client->copyright();
     }
 
