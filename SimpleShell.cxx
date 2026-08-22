@@ -864,6 +864,7 @@ int SimpleShell::vprintf(const char *format, va_list ap)
     int ret = 0;
     size_t len = 0;
     char pbuf[1024];
+    const char *p;
 
     if (format == NULL) {
         goto done;
@@ -875,13 +876,21 @@ int SimpleShell::vprintf(const char *format, va_list ap)
     }
 
     len = (size_t) ret;
+    if (len >= (sizeof(pbuf) - 1)) {
+        len = sizeof(pbuf) - 2;
+    }
 
+    p = pbuf;
     while (len > 0) {
-        ret = tx_write((const uint8_t *) pbuf, len);
-        if (ret == -1) {
+        ret = tx_write((const uint8_t *) p, len);
+        if (ret <= 0) {
+            if (ret == 0) {
+                ret = -1;
+            }
             break;
         }
 
+        p += (size_t) ret;
         len -= (size_t) ret;
     }
 
