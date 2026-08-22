@@ -238,6 +238,21 @@ void MeshShell::stop(void)
     _isRunning = false;
 }
 
+void MeshShell::reapChildren(void)
+{
+    vector<shared_ptr<MeshShell>>::iterator it;
+
+    it = _children.begin();
+    while (it != _children.end()) {
+        if ((*it)->_isRunning == false) {
+            (*it)->join();
+            it = _children.erase(it);
+        } else {
+            it++;
+        }
+    }
+}
+
 void MeshShell::thread_function(MeshShell *ms)
 {
     ms->run();
@@ -282,6 +297,10 @@ void MeshShell::run(void)
             .tv_sec = 0,
             .tv_usec = 500000,
         };
+
+        if (binder) {
+            reapChildren();
+        }
 
         if ((nvmSet == false) && (_client != NULL) && (_nvm != NULL) &&
             _client->isConnected()) {
@@ -410,6 +429,11 @@ void MeshShell::run(void)
          it != _children.end(); it++) {
         (*it)->detach();
     }
+
+    if (netClient && (_fd >= 0) && (_fd != STDIN_FILENO)) {
+        close(_fd);
+        _fd = -1;
+    }
 }
 
 int MeshShell::ctx_vprintf(void *ctx, const char *format, va_list ap)
@@ -489,6 +513,7 @@ int MeshShell::exit(int argc, char **argv)
         raise(SIGINT);
     } else {
         close(_fd);
+        _fd = -1;
     }
 
     return 0;

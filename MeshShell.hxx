@@ -55,6 +55,7 @@ protected:
 private:
 
     void stop(void);
+    void reapChildren(void);
     static void thread_function(MeshShell *ms);
     void run(void);
 

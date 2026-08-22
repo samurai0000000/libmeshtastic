@@ -82,7 +82,7 @@ void MorseBuzzer::runMorseThread(void)
         case 'm':
         case 'M': dash(); dash(false); break;
         case 'n':
-        case 'N': dash(); dot(); break;
+        case 'N': dash(); dot(false); break;
         case 'o':
         case 'O': dash(); dash(); dash(false); break;
         case 'p':

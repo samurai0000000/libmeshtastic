@@ -622,7 +622,7 @@ void MeshClient::gotRebooted(bool rebooted)
 {
     SimpleClient::gotRebooted(rebooted);
     if (_verbose) {
-        cout << "Rebooted: %d\n" << (int) rebooted << endl;
+        cout << "Rebooted: " << (int) rebooted << endl;
     }
 }
 

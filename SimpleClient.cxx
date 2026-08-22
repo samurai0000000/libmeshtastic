@@ -98,8 +98,11 @@ string SimpleClient::lookupShortName(uint32_t id, bool noUnprintable) const
 
     it = _nodeInfos.find(id);
     if ((it != _nodeInfos.end()) && (it->second.user.short_name[0] != '\0')) {
-        for (unsigned int i = 0; i < 4; i++) {
+        for (unsigned int i = 0; i < sizeof(it->second.user.short_name); i++) {
             char c = it->second.user.short_name[i];
+            if (c == '\0') {
+                break;
+            }
             if (!noUnprintable || isprint(c)) {
                 s += c;
             } else {
