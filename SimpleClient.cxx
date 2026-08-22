@@ -569,9 +569,13 @@ void SimpleClient::gotUser(const meshtastic_MeshPacket &packet,
         meshtastic_NodeInfo nodeInfo;
 
         bzero(&nodeInfo, sizeof(nodeInfo));
+        nodeInfo.num = packet.from;
+        nodeInfo.has_user = true;
         nodeInfo.user = user;
         _nodeInfos[packet.from] = nodeInfo;
     } else {
+        _nodeInfos[packet.from].num = packet.from;
+        _nodeInfos[packet.from].has_user = true;
         _nodeInfos[packet.from].user = user;
     }
 }
