@@ -284,6 +284,10 @@ void MeshShell::run(void)
     if (!binder) {
         this->printf("%s\n", _client->banner().c_str());
         this->printf("%s\n", _client->version().c_str());
+        if (!_client->firmwareVersion().empty()) {
+            this->printf("Meshtastic: %s\n",
+                         _client->firmwareVersion().c_str());
+        }
         this->printf("%s\n", _client->built().c_str());
         this->printf("----------------------------------------------------\n");
         this->printf("%s\n", _client->copyright().c_str());

@@ -37,6 +37,7 @@ void SimpleClient::clear(void)
     _localStats.clear();
     _healthMetrics.clear();
     _hostMetrics.clear();
+    _firmwareVersion.clear();
 }
 
 uint32_t SimpleClient::whoami(void) const
@@ -282,6 +283,8 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
     case meshtastic_FromRadio_rebooted_tag:
         sc->gotRebooted(fromRadio->rebooted);
         break;
+    case meshtastic_FromRadio_metadata_tag:
+        sc->gotDeviceMetadata(fromRadio->metadata);
         break;
     default:
         break;
@@ -594,7 +597,16 @@ void SimpleClient::gotAdminMessage(const meshtastic_MeshPacket &packet,
                                    const meshtastic_AdminMessage &adminMessage)
 {
     (void)(packet);
-    (void)(adminMessage);
+
+    if (adminMessage.which_payload_variant ==
+        meshtastic_AdminMessage_get_device_metadata_response_tag) {
+        gotDeviceMetadata(adminMessage.get_device_metadata_response);
+    }
+}
+
+void SimpleClient::gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata)
+{
+    _firmwareVersion = deviceMetadata.firmware_version;
 }
 
 void SimpleClient::gotTelemetry(const meshtastic_MeshPacket &packet,

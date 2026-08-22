@@ -637,6 +637,7 @@ void MeshClient::gotQueueStatus(const meshtastic_QueueStatus &queueStatus)
 
 void MeshClient::gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata)
 {
+    SimpleClient::gotDeviceMetadata(deviceMetadata);
     _deviceMetadata = deviceMetadata;
     if (_verbose) {
         cout << _deviceMetadata;

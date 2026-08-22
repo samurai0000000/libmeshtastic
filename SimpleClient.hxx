@@ -49,6 +49,9 @@ public:
     inline const string &copyright(void) const {
         return _copyright;
     }
+    inline const string &firmwareVersion(void) const {
+        return _firmwareVersion;
+    }
 
     virtual void clear(void);
 
@@ -151,6 +154,7 @@ protected:
     virtual void gotChannel(const meshtastic_Channel &channel);
     virtual void gotConfigCompleteId(uint32_t id);
     virtual void gotRebooted(bool rebooted);
+    virtual void gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata);
     virtual void gotTextMessage(const meshtastic_MeshPacket &packet,
                                 const string &message);
     virtual void gotPosition(const meshtastic_MeshPacket &packet,
@@ -252,6 +256,7 @@ protected:
     string _version;
     string _built;
     string _copyright;
+    string _firmwareVersion;
 
     uint32_t _dmRx;
     uint32_t _dmTx;
