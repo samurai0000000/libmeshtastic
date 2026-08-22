@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <libmeshtastic.h>
@@ -86,8 +87,21 @@ int main(int argc, char **argv)
             device = optarg;
             break;
         case 's':
-            reboot_seconds = (uint32_t) strtoul(optarg, NULL, 0);
+        {
+            char *end = NULL;
+            unsigned long v;
+
+            errno = 0;
+            v = strtoul(optarg, &end, 0);
+            if ((optarg[0] == '\0') || (optarg[0] == '-') ||
+                (end == optarg) || (*end != '\0') ||
+                (errno == ERANGE) || (v > (unsigned long) INT32_MAX)) {
+                fprintf(stderr, "invalid seconds: %s\n", optarg);
+                exit(EXIT_FAILURE);
+            }
+            reboot_seconds = (uint32_t) v;
             break;
+        }
         default:
             fprintf(stderr, "Unrecognized argument specified!\n");
             exit(EXIT_FAILURE);

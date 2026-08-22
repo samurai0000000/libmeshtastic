@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <time.h>
 #include <libmeshtastic.h>
 
@@ -343,6 +344,12 @@ int mt_admin_message_reboot(struct mt_client *mtc, uint32_t dest,
     pb_ostream_t ostream;
 
     if (mtc == NULL) {
+        errno = EINVAL;
+        ret = -1;
+        goto done;
+    }
+
+    if (seconds > (uint32_t) INT32_MAX) {
         errno = EINVAL;
         ret = -1;
         goto done;
