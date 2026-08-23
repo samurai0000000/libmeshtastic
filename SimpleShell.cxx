@@ -500,6 +500,12 @@ int SimpleShell::dm(int argc, char **argv)
     uint32_t dest = 0xffffffffU;
     string message;
 
+    if (!_client->isConnected()) {
+        this->printf("Not connected\n");
+        ret = -1;
+        goto done;
+    }
+
     if (argc < 3) {
         this->printf("Usage: %s [name] message\n", argv[0]);
         ret = -1;
@@ -518,7 +524,7 @@ int SimpleShell::dm(int argc, char **argv)
         message += " ";
     }
 
-    if (_client->textMessage(dest, 0x0U, message) != true) {
+    if (_client->textMessage(dest, 0x0U, message, 3, true) != true) {
         this->printf("failed!\n");
         ret = -1;
         goto done;
@@ -536,6 +542,12 @@ int SimpleShell::cm(int argc, char **argv)
     int ret = 0;
     uint8_t channel = 0xffU;
     string message;
+
+    if (!_client->isConnected()) {
+        this->printf("Not connected\n");
+        ret = -1;
+        goto done;
+    }
 
     if (argc < 3) {
         this->printf("Usage: %s [chan] message\n", argv[0]);

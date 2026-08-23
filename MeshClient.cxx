@@ -690,7 +690,7 @@ void MeshClient::run(void)
 
     now = time(NULL);
     last_heartbeat = now;
-    last_want_config = now;
+    last_want_config = 0;
 
     sendDisconnect();
 

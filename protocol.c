@@ -206,16 +206,46 @@ done:
     return ret;
 }
 
+static void mt_seed_rand(void)
+{
+    static int seeded = 0;
+
+    if (!seeded) {
+        srand((unsigned int) time(NULL));
+        seeded = 1;
+    }
+}
+
+static uint32_t mt_next_packet_id(void)
+{
+    static uint32_t seq = 0;
+    uint32_t id;
+
+    mt_seed_rand();
+
+    if (seq == 0) {
+        seq = ((uint32_t) time(NULL) << 8) ^ ((uint32_t) rand() << 1);
+        if (seq == 0) {
+            seq = 1;
+        }
+    }
+
+    seq++;
+    id = seq & 0x7fffffffU;
+    if (id == 0) {
+        seq = 1;
+        id = 1;
+    }
+
+    return id;
+}
+
 int mt_send_want_config(struct mt_client *mtc)
 {
-    static int __seeded_rand = 0;
     int ret = 0;
     meshtastic_ToRadio to_radio;
 
-    if (!__seeded_rand) {
-        srand(time(NULL));
-        __seeded_rand = 1;
-    }
+    mt_seed_rand();
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -275,11 +305,14 @@ int mt_text_message(struct mt_client *mtc,
     bzero(&to_radio, sizeof(to_radio));
     to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
     to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
-    to_radio.packet.id = rand() & 0x7fffffff;
+    to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.decoded.portnum = meshtastic_PortNum_TEXT_MESSAGE_APP;
     to_radio.packet.to = dest;
     to_radio.packet.channel = channel;
     to_radio.packet.want_ack = want_ack;
+    if (want_ack) {
+        to_radio.packet.priority = meshtastic_MeshPacket_Priority_RELIABLE;
+    }
     to_radio.packet.hop_start = hop_start;
     to_radio.packet.hop_limit = hop_start;
     to_radio.packet.decoded.payload.size = message_len;
@@ -314,7 +347,7 @@ int mt_admin_message_device_metadata_request(struct mt_client *mtc)
     bzero(&to_radio, sizeof(to_radio));
     to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
     to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
-    to_radio.packet.id = rand() & 0x7fffffff;
+    to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
     to_radio.packet.decoded.want_response = true;
 
@@ -363,7 +396,7 @@ int mt_admin_message_reboot(struct mt_client *mtc, uint32_t dest,
     bzero(&to_radio, sizeof(to_radio));
     to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
     to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
-    to_radio.packet.id = rand() & 0x7fffffff;
+    to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.to = dest;
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
 
