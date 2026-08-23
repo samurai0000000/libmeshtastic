@@ -734,6 +734,8 @@ void MeshClient::run(void)
             last_min = localTime->tm_min;
             crontab(localTime);
         }
+
+        loop();
     }
 
     sendDisconnect();
@@ -745,6 +747,11 @@ void MeshClient::run(void)
 void MeshClient::crontab(const struct tm *now)
 {
     (void)(now);
+}
+
+void MeshClient::loop(void)
+{
+
 }
 
 /*

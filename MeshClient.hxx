@@ -343,6 +343,7 @@ protected:
 protected:
 
     virtual void crontab(const struct tm *now);
+    virtual void loop(void);
 
 private:
 
