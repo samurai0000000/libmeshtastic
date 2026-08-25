@@ -15,6 +15,10 @@
 #include <functional>
 #include <HomeChat.hxx>
 
+#ifndef DEBUG_CHATBOT
+#define DEBUG_CHATBOT 0
+#endif
+
 void toLowercase(string &s)
 {
     transform(s.begin(), s.end(), s.begin(),
@@ -226,6 +230,13 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
+    if (packet.from == _client->whoami()) {
+#if DEBUG_CHATBOT
+        cout << "chatbot: skip self from=" << packet.from << endl;
+#endif
+        goto done;
+    }
+
     if (packet.to == _client->whoami()) {
         directMessage = true;
         dest = packet.from;
@@ -297,6 +308,12 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         } else {
             reply = "";  // mute if 'all' was the target
         }
+#if DEBUG_CHATBOT
+        cout << "chatbot: unauthorized from=" << packet.from
+             << " dm=" << directMessage
+             << " addressed=" << addressed2Me
+             << " muted=" << (reply.empty() ? 1 : 0) << endl;
+#endif
         goto done;
     }
 
@@ -369,7 +386,24 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         goto done;
     }
 
-    reply = handleUnknown(packet.from, message);
+    if (message.empty()) {
+#if DEBUG_CHATBOT
+        cout << "chatbot: empty message from=" << packet.from << endl;
+#endif
+        goto done;
+    }
+
+    if (!(directMessage || addressed2Me)) {
+        goto done;
+    }
+
+#if DEBUG_CHATBOT
+    cout << "chatbot: handleUnknown from=" << packet.from
+         << " dest=" << dest
+         << " channel=" << (unsigned int) channel
+         << " msg='" << message << "'" << endl;
+#endif
+    reply = handleUnknown(packet.from, dest, channel, message);
 
 done:
 
@@ -1037,9 +1071,12 @@ string HomeChat::handleStatus(uint32_t node_num, string &message)
     return string();
 }
 
-string HomeChat::handleUnknown(uint32_t node_num, string &message)
+string HomeChat::handleUnknown(uint32_t node_num, uint32_t dest,
+                               uint8_t channel, string &message)
 {
     (void)(node_num);
+    (void)(dest);
+    (void)(channel);
     (void)(message);
 
     return string();
