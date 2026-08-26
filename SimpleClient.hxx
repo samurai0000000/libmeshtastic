@@ -146,6 +146,7 @@ protected:
                         const void *packet, size_t size,
                         const meshtastic_FromRadio *fromRadio);
 
+    virtual void updateNodeFromPacket(const meshtastic_MeshPacket &packet);
     virtual void gotPacket(const meshtastic_MeshPacket &packet);
     virtual void gotMyNodeInfo(const meshtastic_MyNodeInfo &myNodeInfo);
     virtual void gotNodeInfo(const meshtastic_NodeInfo &nodeInfo);

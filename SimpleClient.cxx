@@ -434,10 +434,33 @@ void SimpleClient::gotLoraConfig(const meshtastic_Config_LoRaConfig &c)
     _loraConfig = c;
 }
 
+void SimpleClient::updateNodeFromPacket(const meshtastic_MeshPacket &packet)
+{
+    if (packet.from == 0) {
+        return;
+    }
+
+    meshtastic_NodeInfo &info = _nodeInfos[packet.from];
+    info.num = packet.from;
+    info.last_heard = (uint32_t) time(NULL);
+    if (packet.rx_snr != 0.0f) {
+        info.snr = packet.rx_snr;
+    }
+    if (packet.hop_start >= packet.hop_limit) {
+        info.has_hops_away = true;
+        info.hops_away = (uint32_t)(packet.hop_start - packet.hop_limit);
+    }
+    if (packet.channel != 0) {
+        info.channel = packet.channel;
+    }
+}
+
 void SimpleClient::gotPacket(const meshtastic_MeshPacket &packet)
 {
     int ret;
     pb_istream_t stream;
+
+    updateNodeFromPacket(packet);
 
     if (packet.which_payload_variant == meshtastic_MeshPacket_decoded_tag) {
         switch (packet.decoded.portnum) {

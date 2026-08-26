@@ -199,6 +199,10 @@ unsigned int MeshClient::hopsAway(uint32_t node_num) const
 
 unsigned int MeshClient::hopsAway(const meshtastic_MeshPacket &packet) const
 {
+    if (packet.hop_start >= packet.hop_limit) {
+        return (unsigned int)(packet.hop_start - packet.hop_limit);
+    }
+
     return hopsAway(packet.from);
 }
 
@@ -271,6 +275,8 @@ void MeshClient::gotPacket(const meshtastic_MeshPacket &packet)
 {
     int ret;
     pb_istream_t stream;
+
+    updateNodeFromPacket(packet);
 
     if (_verbose) {
         cout << packet;
