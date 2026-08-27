@@ -23,6 +23,7 @@ SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
     _help_list.push_back("wcfg");
     _help_list.push_back("disc");
     _help_list.push_back("hb");
+    _help_list.push_back("zerohops");
     _help_list.push_back("dm");
     _help_list.push_back("cm");
     _help_list.push_back("authchan");
@@ -235,6 +236,13 @@ int SimpleShell::help(int argc, char **argv)
     int ret = 0;
     unsigned int i;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Display list of available commands.\n");
+        return 0;
+    }
+
     (void)(argc);
     (void)(argv);
 
@@ -244,10 +252,10 @@ int SimpleShell::help(int argc, char **argv)
     for (vector<string>::const_iterator it = _help_list.begin();
          it != _help_list.end(); it++, i++) {
         if ((i % 4) == 0) {
-            this->printf("\t");
+            this->printf("  ");
         }
 
-        this->printf("%s\t", it->c_str());
+        this->printf("%-12s", it->c_str());
 
         if ((i % 4) == 3) {
             this->printf("\n");
@@ -264,6 +272,13 @@ int SimpleShell::help(int argc, char **argv)
 int SimpleShell::version(int argc, char **argv)
 {
     int ret = 0;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Display version and build information.\n");
+        return 0;
+    }
 
     (void)(argc);
     (void)(argv);
@@ -287,6 +302,15 @@ int SimpleShell::system(int argc, char **argv)
     time_t now;
     unsigned int uptime, days, hour, min, sec;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] [-v]\n", argv[0]);
+        this->printf("  Display system uptime and info.\n");
+        this->printf("Options:\n");
+        this->printf("  -v            Verbose output\n");
+        return 0;
+    }
+
     (void)(argc);
     (void)(argv);
 
@@ -309,6 +333,15 @@ int SimpleShell::reboot(int argc, char **argv)
 {
     int ret = 0;
     unsigned int seconds = 0;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] [seconds]\n", argv[0]);
+        this->printf("  Reboot the connected Meshtastic node.\n");
+        this->printf("Arguments:\n");
+        this->printf("  seconds       Delay in seconds before rebooting (default: 0)\n");
+        return 0;
+    }
 
     if (!_client->isConnected()) {
         this->printf("Not connected\n");
@@ -339,6 +372,13 @@ int SimpleShell::status(int argc, char **argv)
     unsigned int i;
     map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev;
     map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Display local node status, channels, seen nodes, and metrics.\n");
+        return 0;
+    }
 
     (void)(argc);
     (void)(argv);
@@ -430,6 +470,13 @@ int SimpleShell::wcfg(int argc, char **argv)
 {
     int ret = 0;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Send WantConfig packet to request node configuration.\n");
+        return 0;
+    }
+
     (void)(argc);
     (void)(argv);
 
@@ -443,7 +490,14 @@ int SimpleShell::wcfg(int argc, char **argv)
 
 int SimpleShell::disc(int argc, char **argv)
 {
-   int ret = 0;
+    int ret = 0;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Disconnect from the Meshtastic device.\n");
+        return 0;
+    }
 
     (void)(argc);
     (void)(argv);
@@ -458,7 +512,14 @@ int SimpleShell::disc(int argc, char **argv)
 
 int SimpleShell::hb(int argc, char **argv)
 {
-   int ret = 0;
+    int ret = 0;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Send a heartbeat packet to the Meshtastic device.\n");
+        return 0;
+    }
 
     (void)(argc);
     (void)(argv);
@@ -473,8 +534,15 @@ int SimpleShell::hb(int argc, char **argv)
 
 int SimpleShell::zerohops(int argc, char **argv)
 {
-   int ret = 0;
-   map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
+    int ret = 0;
+    map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  List all directly heard (zero hop) neighbors.\n");
+        return 0;
+    }
 
     (void)(argc);
     (void)(argv);
@@ -506,6 +574,16 @@ int SimpleShell::dm(int argc, char **argv)
     uint32_t dest = 0xffffffffU;
     string message;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] <dest> <message>\n", argv[0]);
+        this->printf("  Send a direct text message to a specific node.\n");
+        this->printf("Arguments:\n");
+        this->printf("  dest          Destination node ID (hex e.g. !2bf941d4) or short name\n");
+        this->printf("  message       Text message to send\n");
+        return 0;
+    }
+
     if (!_client->isConnected()) {
         this->printf("Not connected\n");
         ret = -1;
@@ -513,7 +591,7 @@ int SimpleShell::dm(int argc, char **argv)
     }
 
     if (argc < 3) {
-        this->printf("Usage: %s [name] message\n", argv[0]);
+        this->printf("Usage: %s [-h|--help] <dest> <message>\n", argv[0]);
         ret = -1;
         goto done;
     }
@@ -549,6 +627,16 @@ int SimpleShell::cm(int argc, char **argv)
     uint8_t channel = 0xffU;
     string message;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] <channel> <message>\n", argv[0]);
+        this->printf("  Broadcast a text message on a channel.\n");
+        this->printf("Arguments:\n");
+        this->printf("  channel       Channel index (e.g. 0) or channel name\n");
+        this->printf("  message       Text message to broadcast\n");
+        return 0;
+    }
+
     if (!_client->isConnected()) {
         this->printf("Not connected\n");
         ret = -1;
@@ -556,7 +644,7 @@ int SimpleShell::cm(int argc, char **argv)
     }
 
     if (argc < 3) {
-        this->printf("Usage: %s [chan] message\n", argv[0]);
+        this->printf("Usage: %s [-h|--help] <channel> <message>\n", argv[0]);
         ret = -1;
         goto done;
     }
@@ -590,6 +678,19 @@ int SimpleShell::authchan(int argc, char **argv)
 {
     int ret = 0;
     bool result;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] [command] [args...]\n", argv[0]);
+        this->printf("  Manage authenticated channels in NVM.\n");
+        this->printf("Commands:\n");
+        this->printf("  authchan                     List all configured authenticated channels\n");
+        this->printf("  authchan add <name>          Add an authenticated channel by name from current config\n");
+        this->printf("  authchan del <name>          Delete an authenticated channel\n");
+        this->printf("  authchan clear               Clear all authenticated channels\n");
+        this->printf("  authchan set <name1> ...     Replace all authenticated channels with list\n");
+        return 0;
+    }
 
     if (argc == 1) {
         for (unsigned int i = 0; i < _nvm->nvmAuthchans().size(); i++) {
@@ -670,6 +771,19 @@ int SimpleShell::admin(int argc, char **argv)
 {
     int ret = 0;
     bool result;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] [command] [args...]\n", argv[0]);
+        this->printf("  Manage admin nodes in NVM.\n");
+        this->printf("Commands:\n");
+        this->printf("  admin                        List all configured admin nodes\n");
+        this->printf("  admin add <node>             Add an admin node (ID or short name)\n");
+        this->printf("  admin del <node>             Delete an admin node\n");
+        this->printf("  admin clear                  Clear all admin nodes\n");
+        this->printf("  admin set <node1> ...        Replace all admin nodes with list\n");
+        return 0;
+    }
 
     if (argc == 1) {
         unsigned int i;
@@ -760,6 +874,19 @@ int SimpleShell::mate(int argc, char **argv)
     int ret = 0;
     bool result;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] [command] [args...]\n", argv[0]);
+        this->printf("  Manage mate nodes in NVM.\n");
+        this->printf("Commands:\n");
+        this->printf("  mate                         List all configured mate nodes\n");
+        this->printf("  mate add <node>              Add a mate node (ID or short name)\n");
+        this->printf("  mate del <node>              Delete a mate node\n");
+        this->printf("  mate clear                   Clear all mate nodes\n");
+        this->printf("  mate set <node1> ...         Replace all mate nodes with list\n");
+        return 0;
+    }
+
     if (argc == 1) {
         unsigned int i;
         for (i = 0; i < _nvm->nvmMates().size(); i++) {
@@ -846,6 +973,13 @@ done:
 
 int SimpleShell::nvm(int argc, char **argv)
 {
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Display all NVM configurations (authchans, admins, mates).\n");
+        return 0;
+    }
+
     if (argc != 1) {
         this->printf("syntax error!\n");
         return -1;
@@ -865,6 +999,15 @@ int SimpleShell::last(int argc, char **argv)
 {
     int ret = 0;
     uint32_t seconds = 0;
+
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] [seconds]\n", argv[0]);
+        this->printf("  List heard nodes with short name, last heard time, and SNR.\n");
+        this->printf("Arguments:\n");
+        this->printf("  seconds       Only show nodes heard within the last N seconds (default: all)\n");
+        return 0;
+    }
 
     if (argc > 1) {
         char *end = NULL;
@@ -927,8 +1070,17 @@ int SimpleShell::purge(int argc, char **argv)
 {
     int ret = 0;
 
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help] <node>\n", argv[0]);
+        this->printf("  Purge a node from the client database.\n");
+        this->printf("Arguments:\n");
+        this->printf("  node          Node ID (hex e.g. !2bf941d4) or short name\n");
+        return 0;
+    }
+
     if (argc < 2) {
-        this->printf("Usage: purge <node-id | shortname>\n");
+        this->printf("Usage: %s [-h|--help] <node>\n", argv[0]);
         return -1;
     }
 

@@ -510,6 +510,13 @@ int MeshShell::printf(const char *format, ...)
 
 int MeshShell::exit(int argc, char **argv)
 {
+    if ((argc >= 2) &&
+        ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+        this->printf("Usage: %s [-h|--help]\n", argv[0]);
+        this->printf("  Exit shell session or disconnect client.\n");
+        return 0;
+    }
+
     (void)(argc);
     (void)(argv);
 
