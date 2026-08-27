@@ -418,6 +418,137 @@ bool SimpleClient::adminMessageReboot(unsigned int seconds)
     return (mt_admin_message_reboot(&_mtc, whoami(), seconds) == 0);
 }
 
+SimpleClient::NodeFilterRange::Iterator::Iterator(
+    map<uint32_t, meshtastic_NodeInfo>::const_iterator it,
+    map<uint32_t, meshtastic_NodeInfo>::const_iterator end,
+    uint32_t seconds, time_t now)
+    : _it(it), _end(end), _seconds(seconds), _now(now)
+{
+    advanceToNextValid();
+}
+
+void SimpleClient::NodeFilterRange::Iterator::advanceToNextValid(void)
+{
+    while (_it != _end) {
+        if (_seconds == 0) {
+            break;
+        }
+
+        const meshtastic_NodeInfo &info = _it->second;
+        if (info.last_heard > 0) {
+            uint32_t diff;
+            if (_now >= (time_t) info.last_heard) {
+                diff = (uint32_t)(_now - (time_t) info.last_heard);
+            } else {
+                diff = (uint32_t)((time_t) info.last_heard - _now);
+            }
+
+            if (diff <= _seconds) {
+                break;
+            }
+        }
+        ++_it;
+    }
+}
+
+const meshtastic_NodeInfo &SimpleClient::NodeFilterRange::Iterator::operator*(void) const
+{
+    return _it->second;
+}
+
+const meshtastic_NodeInfo *SimpleClient::NodeFilterRange::Iterator::operator->(void) const
+{
+    return &_it->second;
+}
+
+SimpleClient::NodeFilterRange::Iterator &SimpleClient::NodeFilterRange::Iterator::operator++(void)
+{
+    if (_it != _end) {
+        ++_it;
+        advanceToNextValid();
+    }
+
+    return *this;
+}
+
+SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::Iterator::operator++(int)
+{
+    Iterator tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+bool SimpleClient::NodeFilterRange::Iterator::operator==(const Iterator &other) const
+{
+    return _it == other._it;
+}
+
+bool SimpleClient::NodeFilterRange::Iterator::operator!=(const Iterator &other) const
+{
+    return _it != other._it;
+}
+
+SimpleClient::NodeFilterRange::NodeFilterRange(
+    const map<uint32_t, meshtastic_NodeInfo> &nodes,
+    uint32_t seconds, time_t now)
+    : _nodes(nodes), _seconds(seconds), _now(now)
+{
+
+}
+
+SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::begin(void) const
+{
+    return Iterator(_nodes.begin(), _nodes.end(), _seconds, _now);
+}
+
+SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::end(void) const
+{
+    return Iterator(_nodes.end(), _nodes.end(), _seconds, _now);
+}
+
+SimpleClient::NodeFilterRange SimpleClient::getLastHeardNodes(uint32_t seconds) const
+{
+    return NodeFilterRange(_nodeInfos, seconds, time(NULL));
+}
+
+bool SimpleClient::commitEditSettings(void)
+{
+    return (mt_admin_message_commit_edit_settings(&_mtc, whoami()) == 0);
+}
+
+bool SimpleClient::purgeNode(uint32_t nodeId)
+{
+    bool result = false;
+
+    _nodeInfos.erase(nodeId);
+    _positions.erase(nodeId);
+    _deviceMetrics.erase(nodeId);
+    _environmentMetrics.erase(nodeId);
+    _airQualityMetrics.erase(nodeId);
+    _powerMetrics.erase(nodeId);
+    _localStats.erase(nodeId);
+    _healthMetrics.erase(nodeId);
+    _hostMetrics.erase(nodeId);
+
+    result = (mt_admin_message_remove_by_nodenum(&_mtc, whoami(), nodeId) == 0);
+    if (result) {
+        commitEditSettings();
+    }
+
+    return result;
+}
+
+bool SimpleClient::purgeNode(const string &shortName)
+{
+    uint32_t nodeId = getId(shortName);
+
+    if (nodeId == 0xffffffffU) {
+        return false;
+    }
+
+    return purgeNode(nodeId);
+}
+
 void SimpleClient::gotConfig(const meshtastic_Config &config)
 {
     switch (config.which_payload_variant) {

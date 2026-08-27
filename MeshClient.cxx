@@ -183,6 +183,38 @@ bool MeshClient::adminMessageReboot(unsigned int seconds)
     return result;
 }
 
+bool MeshClient::commitEditSettings(void)
+{
+    bool result = false;
+
+    _mutex.lock();
+    result = SimpleClient::commitEditSettings();
+    _mutex.unlock();
+
+    return result;
+}
+
+bool MeshClient::purgeNode(uint32_t nodeId)
+{
+    bool result = false;
+
+    _mutex.lock();
+    result = SimpleClient::purgeNode(nodeId);
+    _mutex.unlock();
+
+    return result;
+}
+
+bool MeshClient::purgeNode(const string &shortName)
+{
+    bool result = false;
+
+    _mutex.lock();
+    result = SimpleClient::purgeNode(shortName);
+    _mutex.unlock();
+
+    return result;
+}
 
 unsigned int MeshClient::hopsAway(uint32_t node_num) const
 {

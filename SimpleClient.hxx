@@ -8,6 +8,7 @@
 #define SIMPLECLIENT_HXX
 
 #include <string>
+#include <vector>
 #include <map>
 #include <mutex>
 #include <libmeshtastic.h>
@@ -73,6 +74,48 @@ public:
     bool textMessage(uint32_t dest, uint8_t channel, const string &message,
                      unsigned int hop_start = 3, bool want_ack = false);
     bool adminMessageReboot(unsigned int seconds = 0);
+
+    struct NodeFilterRange {
+        class Iterator {
+        public:
+            Iterator(map<uint32_t, meshtastic_NodeInfo>::const_iterator it,
+                     map<uint32_t, meshtastic_NodeInfo>::const_iterator end,
+                     uint32_t seconds, time_t now);
+
+            const meshtastic_NodeInfo &operator*(void) const;
+            const meshtastic_NodeInfo *operator->(void) const;
+            Iterator &operator++(void);
+            Iterator operator++(int);
+            bool operator==(const Iterator &other) const;
+            bool operator!=(const Iterator &other) const;
+
+        private:
+            void advanceToNextValid(void);
+
+            map<uint32_t, meshtastic_NodeInfo>::const_iterator _it;
+            map<uint32_t, meshtastic_NodeInfo>::const_iterator _end;
+            uint32_t _seconds;
+            time_t _now;
+        };
+
+        NodeFilterRange(const map<uint32_t, meshtastic_NodeInfo> &nodes,
+                        uint32_t seconds, time_t now);
+
+        Iterator begin(void) const;
+        Iterator end(void) const;
+
+    private:
+        const map<uint32_t, meshtastic_NodeInfo> &_nodes;
+        uint32_t _seconds;
+        time_t _now;
+    };
+
+    NodeFilterRange getLastHeardNodes(uint32_t seconds = 0) const;
+
+    bool commitEditSettings(void);
+
+    bool purgeNode(uint32_t nodeId);
+    bool purgeNode(const string &shortName);
 
 public:
 

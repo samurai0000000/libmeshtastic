@@ -87,6 +87,11 @@ extern int mt_admin_message_device_metadata_request(
     struct mt_client *mtc);
 extern int mt_admin_message_reboot(struct mt_client *mtc,
                                    uint32_t dest, uint32_t seconds);
+extern int mt_admin_message_commit_edit_settings(struct mt_client *mtc,
+                                                 uint32_t dest);
+extern int mt_admin_message_remove_by_nodenum(struct mt_client *mtc,
+                                              uint32_t dest,
+                                              uint32_t nodenum);
 
 extern time_t mt_impl_now(void);
 

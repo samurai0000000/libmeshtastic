@@ -417,6 +417,91 @@ done:
     return ret;
 }
 
+int mt_admin_message_commit_edit_settings(struct mt_client *mtc, uint32_t dest)
+{
+    int ret = 0;
+    meshtastic_ToRadio to_radio;
+    meshtastic_AdminMessage admin_message;
+    pb_ostream_t ostream;
+
+    if (mtc == NULL) {
+        errno = EINVAL;
+        ret = -1;
+        goto done;
+    }
+
+    bzero(&admin_message, sizeof(admin_message));
+    admin_message.which_payload_variant =
+        meshtastic_AdminMessage_commit_edit_settings_tag;
+    admin_message.commit_edit_settings = true;
+
+    bzero(&to_radio, sizeof(to_radio));
+    to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
+    to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
+    to_radio.packet.id = mt_next_packet_id();
+    to_radio.packet.to = dest;
+    to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+
+    ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
+                                     sizeof(to_radio.packet.decoded.payload.bytes));
+    ret = pb_encode(&ostream, meshtastic_AdminMessage_fields, &admin_message);
+    if (ret != 1) {
+        errno = EIO;
+        ret = -1;
+        goto done;
+    }
+    to_radio.packet.decoded.payload.size = ostream.bytes_written;
+
+    ret = mt_send_to_radio(mtc, &to_radio);
+
+done:
+
+    return ret;
+}
+
+int mt_admin_message_remove_by_nodenum(struct mt_client *mtc, uint32_t dest,
+                                       uint32_t nodenum)
+{
+    int ret = 0;
+    meshtastic_ToRadio to_radio;
+    meshtastic_AdminMessage admin_message;
+    pb_ostream_t ostream;
+
+    if (mtc == NULL) {
+        errno = EINVAL;
+        ret = -1;
+        goto done;
+    }
+
+    bzero(&admin_message, sizeof(admin_message));
+    admin_message.which_payload_variant =
+        meshtastic_AdminMessage_remove_by_nodenum_tag;
+    admin_message.remove_by_nodenum = nodenum;
+
+    bzero(&to_radio, sizeof(to_radio));
+    to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;
+    to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
+    to_radio.packet.id = mt_next_packet_id();
+    to_radio.packet.to = dest;
+    to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+
+    ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
+                                     sizeof(to_radio.packet.decoded.payload.bytes));
+    ret = pb_encode(&ostream, meshtastic_AdminMessage_fields, &admin_message);
+    if (ret != 1) {
+        errno = EIO;
+        ret = -1;
+        goto done;
+    }
+    to_radio.packet.decoded.payload.size = ostream.bytes_written;
+
+    ret = mt_send_to_radio(mtc, &to_radio);
+
+done:
+
+    return ret;
+}
+
 /*
  * Local variables:
  * mode: C

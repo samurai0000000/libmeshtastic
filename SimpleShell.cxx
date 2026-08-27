@@ -29,6 +29,8 @@ SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
     _help_list.push_back("admin");
     _help_list.push_back("mate");
     _help_list.push_back("nvm");
+    _help_list.push_back("last");
+    _help_list.push_back("purge");
 }
 
 SimpleShell::~SimpleShell()
@@ -215,6 +217,10 @@ int SimpleShell::exec(char *cmdline)
         ret = this->mate(argc, argv);
     } else if (strcmp(argv[0], "nvm") == 0) {
         ret = this->nvm(argc, argv);
+    } else if (strcmp(argv[0], "last") == 0) {
+        ret = this->last(argc, argv);
+    } else if (strcmp(argv[0], "purge") == 0) {
+        ret = this->purge(argc, argv);
     } else {
         ret = this->unknown_command(argc, argv);
     }
@@ -853,6 +859,93 @@ int SimpleShell::nvm(int argc, char **argv)
     mate(argc, argv);
 
     return 0;
+}
+
+int SimpleShell::last(int argc, char **argv)
+{
+    int ret = 0;
+    uint32_t seconds = 0;
+
+    if (argc > 1) {
+        char *end = NULL;
+        unsigned long val = strtoul(argv[1], &end, 10);
+        if (end != argv[1]) {
+            seconds = (uint32_t) val;
+        }
+    }
+
+    if (!_client) {
+        this->printf("Client not connected.\n");
+        return -1;
+    }
+
+    time_t now = time(NULL);
+    unsigned int count = 0;
+
+    this->printf("%-10s  %-12s  %-12s  %s\n", "ID", "ShortName", "LastHeard", "SNR");
+    this->printf("%-10s  %-12s  %-12s  %s\n", "----------", "------------", "------------", "-------");
+
+    for (const meshtastic_NodeInfo &node : _client->getLastHeardNodes(seconds)) {
+        string idStr = _client->idString(node.num);
+        string shortName = (node.has_user && (node.user.short_name[0] != '\0')) ?
+            _client->lookupShortName(node.num, true) : "****";
+
+        char agoBuf[32];
+        if (node.last_heard > 0) {
+            uint32_t ago = 0;
+            if (now >= (time_t) node.last_heard) {
+                ago = (uint32_t)(now - (time_t) node.last_heard);
+            }
+            snprintf(agoBuf, sizeof(agoBuf), "%us ago", (unsigned int) ago);
+        } else {
+            snprintf(agoBuf, sizeof(agoBuf), "N/A");
+        }
+
+        char snrBuf[32];
+        if (node.snr != 0.0f) {
+            snprintf(snrBuf, sizeof(snrBuf), "%+.2f dB", node.snr);
+        } else {
+            snprintf(snrBuf, sizeof(snrBuf), "N/A");
+        }
+
+        this->printf("%-10s  %-12s  %-12s  %s\n", idStr.c_str(), shortName.c_str(), agoBuf, snrBuf);
+        count++;
+    }
+
+    if (count == 0) {
+        if (seconds == 0) {
+            this->printf("No nodes in database.\n");
+        } else {
+            this->printf("No nodes heard within %u seconds.\n", seconds);
+        }
+    }
+
+    return ret;
+}
+
+int SimpleShell::purge(int argc, char **argv)
+{
+    int ret = 0;
+
+    if (argc < 2) {
+        this->printf("Usage: purge <node-id | shortname>\n");
+        return -1;
+    }
+
+    if (!_client) {
+        this->printf("Client not connected.\n");
+        return -1;
+    }
+
+    string nodeArg = argv[1];
+    if (_client->purgeNode(nodeArg)) {
+        this->printf("Purged node '%s'.\n", nodeArg.c_str());
+    } else {
+        this->printf("Failed to purge node '%s'.\n", nodeArg.c_str());
+        ret = -1;
+    }
+
+    return ret;
 }
 
 int SimpleShell::unknown_command(int argc, char **argv)

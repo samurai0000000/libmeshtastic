@@ -54,6 +54,11 @@ public:
 
     bool adminMessageReboot(unsigned int seconds = 0);
 
+    bool commitEditSettings(void);
+
+    bool purgeNode(uint32_t nodeId);
+    bool purgeNode(const string &shortName);
+
     unsigned int hopsAway(uint32_t node_num) const;
     unsigned int hopsAway(const meshtastic_MeshPacket &packet) const;
 

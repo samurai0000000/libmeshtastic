@@ -77,6 +77,8 @@ protected:
     virtual int admin(int argc, char **argv);
     virtual int mate(int argc, char **argv);
     virtual int nvm(int argc, char **argv);
+    virtual int last(int argc, char **argv);
+    virtual int purge(int argc, char **argv);
     virtual int unknown_command(int argc, char **argv);
 
     time_t _since;
