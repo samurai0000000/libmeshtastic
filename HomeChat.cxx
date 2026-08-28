@@ -720,7 +720,6 @@ void HomeChat::handleTimeBroadcast(const meshtastic_MeshPacket &packet,
 
 string HomeChat::handleUptime(uint32_t node_num, string &message)
 {
-    time_t now;
     uint32_t upsec;
     unsigned int days, hour, min, sec;
     char buf[64];
@@ -728,8 +727,12 @@ string HomeChat::handleUptime(uint32_t node_num, string &message)
     (void)(node_num);
     (void)(message);
 
-    now = time(NULL);
-    upsec = now - _since;
+    if (_client != NULL) {
+        upsec = _client->getUptime();
+    } else {
+        time_t now = time(NULL);
+        upsec = (now >= _since) ? (uint32_t) (now - _since) : 0;
+    }
     sec = upsec % 60;
     min = (upsec / 60) % 60;
     hour = (upsec / 3600) % 24;

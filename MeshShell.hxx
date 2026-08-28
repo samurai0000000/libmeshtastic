@@ -64,8 +64,6 @@ private:
 
 private:
 
-    time_t _since;
-
     shared_ptr<thread> _thread;
     mutex _mutex;
     bool _isRunning;

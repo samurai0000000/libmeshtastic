@@ -18,6 +18,7 @@ SimpleClient::SimpleClient()
     _mtc.ctx = this;
     _isConnected = false;
     _isClockSynced = false;
+    _since = time(NULL);
     bzero(&_myNodeInfo, sizeof(_myNodeInfo));
     bzero(&_loraConfig, sizeof(_loraConfig));
     bzero(&_deviceConfig, sizeof(_deviceConfig));
@@ -623,10 +624,12 @@ void SimpleClient::syncHostClock(uint32_t epoch_seconds)
 
     time_t now = time(NULL);
     if ((now < 1700000000U) || (labs(now - (time_t) epoch_seconds) >= 60)) {
+        time_t delta = (time_t) epoch_seconds - now;
         struct timeval tv;
         tv.tv_sec = (time_t) epoch_seconds;
         tv.tv_usec = 0;
         settimeofday(&tv, NULL);
+        _since += delta;
         _mtc.last_packet_ts = epoch_seconds;
         _mtc.last_byte_ts = epoch_seconds;
     }

@@ -299,7 +299,6 @@ int SimpleShell::version(int argc, char **argv)
 int SimpleShell::system(int argc, char **argv)
 {
     int ret = 0;
-    time_t now;
     unsigned int uptime, days, hour, min, sec;
 
     if ((argc >= 2) &&
@@ -314,8 +313,12 @@ int SimpleShell::system(int argc, char **argv)
     (void)(argc);
     (void)(argv);
 
-    now = time(NULL);
-    uptime = now - _since;
+    if (_client != NULL) {
+        uptime = _client->getUptime();
+    } else {
+        time_t now = time(NULL);
+        uptime = (now >= _since) ? (unsigned int) (now - _since) : 0;
+    }
     sec = (uptime % 60);
     min = (uptime / 60) % 60;
     hour = (uptime / 3600) % 24;

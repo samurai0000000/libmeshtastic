@@ -133,6 +133,17 @@ public:
         return _isClockSynced;
     }
 
+    inline time_t since(void) const
+    {
+        return _since;
+    }
+
+    inline uint32_t getUptime(void) const
+    {
+        time_t now = time(NULL);
+        return (now >= _since) ? (uint32_t) (now - _since) : 0;
+    }
+
     inline const meshtastic_MyNodeInfo &myNodeInfo(void) const
     {
         return _myNodeInfo;
@@ -251,6 +262,7 @@ protected:
 
     bool _isConnected;
     bool _isClockSynced;
+    time_t _since;
     meshtastic_MyNodeInfo _myNodeInfo;
     map<uint32_t, meshtastic_NodeInfo> _nodeInfos;
     meshtastic_Config_LoRaConfig _loraConfig;

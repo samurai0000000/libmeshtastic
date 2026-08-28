@@ -21,7 +21,6 @@
 
 MeshShell::MeshShell(shared_ptr<MeshClient> client)
 {
-    _since = time(NULL);
     setClient(client);
     _fd = -1;
     _port = 0;
