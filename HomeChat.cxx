@@ -438,14 +438,7 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         time_t parsed_epoch = 0;
         string parsed_tz;
         if (parseTimeBroadcast(_message, parsed_epoch, parsed_tz)) {
-            setenv("TZ", parsed_tz.c_str(), 1);
-            tzset();
-
-            if (_client != NULL) {
-                _client->syncHostClock((uint32_t) parsed_epoch);
-                _client->setTime((uint32_t) parsed_epoch);
-                _client->setTimezone(parsed_tz);
-            }
+            handleTimeBroadcast(packet, parsed_epoch, parsed_tz);
         }
     }
 
@@ -708,6 +701,21 @@ string HomeChat::handleRollcall(uint32_t node_num, string &message)
         " is at your service";
 
     return reply;
+}
+
+void HomeChat::handleTimeBroadcast(const meshtastic_MeshPacket &packet,
+                                   time_t epoch, const string &tz)
+{
+    (void)(packet);
+
+    setenv("TZ", tz.c_str(), 1);
+    tzset();
+
+    if (_client != NULL) {
+        _client->syncHostClock((uint32_t) epoch);
+        _client->setTime((uint32_t) epoch);
+        _client->setTimezone(tz);
+    }
 }
 
 string HomeChat::handleUptime(uint32_t node_num, string &message)

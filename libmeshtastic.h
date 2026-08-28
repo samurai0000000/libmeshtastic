@@ -98,6 +98,7 @@ extern int mt_admin_message_set_time(struct mt_client *mtc,
                                      uint32_t epoch_seconds);
 extern int mt_admin_message_set_tzdef(struct mt_client *mtc,
                                       uint32_t dest,
+                                      const meshtastic_Config_DeviceConfig *current_device_config,
                                       const char *tzdef);
 
 extern time_t mt_impl_now(void);

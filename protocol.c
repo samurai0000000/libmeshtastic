@@ -546,6 +546,7 @@ done:
 }
 
 int mt_admin_message_set_tzdef(struct mt_client *mtc, uint32_t dest,
+                               const meshtastic_Config_DeviceConfig *current_device_config,
                                const char *tzdef)
 {
     int ret = 0;
@@ -564,8 +565,12 @@ int mt_admin_message_set_tzdef(struct mt_client *mtc, uint32_t dest,
         meshtastic_AdminMessage_set_config_tag;
     admin_message.set_config.which_payload_variant =
         meshtastic_Config_device_tag;
+    if (current_device_config != NULL) {
+        admin_message.set_config.payload_variant.device = *current_device_config;
+    }
     strncpy(admin_message.set_config.payload_variant.device.tzdef, tzdef,
             sizeof(admin_message.set_config.payload_variant.device.tzdef) - 1);
+    admin_message.set_config.payload_variant.device.tzdef[sizeof(admin_message.set_config.payload_variant.device.tzdef) - 1] = '\0';
 
     bzero(&to_radio, sizeof(to_radio));
     to_radio.which_payload_variant = meshtastic_ToRadio_packet_tag;

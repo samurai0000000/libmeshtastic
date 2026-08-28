@@ -72,6 +72,8 @@ protected:
     virtual string getLastMessageFrom(uint32_t node_num) const;
 
     virtual string handleRollcall(uint32_t node_num, string &message);
+    virtual void handleTimeBroadcast(const meshtastic_MeshPacket &packet,
+                                     time_t epoch, const string &tz);
     virtual string handleUptime(uint32_t node_num, string &message);
     virtual string handleVersion(uint32_t node_num, string &message);
     virtual string handleZeroHops(uint32_t node_num, string &message);

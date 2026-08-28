@@ -119,7 +119,7 @@ public:
 
     bool setTime(uint32_t seconds = 0, uint32_t dest = 0);
     bool setTimezone(const string &tzdef, uint32_t dest = 0);
-    void syncHostClock(uint32_t epoch_seconds);
+    virtual void syncHostClock(uint32_t epoch_seconds);
 
 public:
 

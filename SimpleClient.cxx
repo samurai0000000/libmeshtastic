@@ -574,7 +574,17 @@ bool SimpleClient::setTimezone(const string &tzdef, uint32_t dest)
         dest = whoami();
     }
 
-    return (mt_admin_message_set_tzdef(&_mtc, dest, tzdef.c_str()) == 0);
+    if (mt_admin_message_set_tzdef(&_mtc, dest, &_deviceConfig, tzdef.c_str()) != 0) {
+        return false;
+    }
+
+    if (dest == whoami()) {
+        strncpy(_deviceConfig.tzdef, tzdef.c_str(), sizeof(_deviceConfig.tzdef) - 1);
+        _deviceConfig.tzdef[sizeof(_deviceConfig.tzdef) - 1] = '\0';
+        commitEditSettings();
+    }
+
+    return true;
 }
 
 void SimpleClient::gotConfig(const meshtastic_Config &config)
