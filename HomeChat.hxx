@@ -59,6 +59,10 @@ public:
     virtual bool handleTextMessage(const meshtastic_MeshPacket &packet,
                                    const string &message);
 
+    static bool parseTimeBroadcast(const string &message,
+                                   time_t &epoch_out,
+                                   string &tz_out);
+
 protected:
 
     virtual bool syncFromNvm(void);

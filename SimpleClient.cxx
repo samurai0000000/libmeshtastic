@@ -18,6 +18,9 @@ SimpleClient::SimpleClient()
     _mtc.ctx = this;
     _isConnected = false;
     _isClockSynced = false;
+    bzero(&_myNodeInfo, sizeof(_myNodeInfo));
+    bzero(&_loraConfig, sizeof(_loraConfig));
+    bzero(&_deviceConfig, sizeof(_deviceConfig));
     resetMeshStats();
 }
 
@@ -29,7 +32,9 @@ SimpleClient::~SimpleClient()
 void SimpleClient::clear(void)
 {
     _nodeInfos.clear();
-    _loraConfig = meshtastic_Config_LoRaConfig();
+    bzero(&_myNodeInfo, sizeof(_myNodeInfo));
+    bzero(&_loraConfig, sizeof(_loraConfig));
+    bzero(&_deviceConfig, sizeof(_deviceConfig));
     _channels.clear();
     _positions.clear();
     _deviceMetrics.clear();
@@ -563,11 +568,23 @@ bool SimpleClient::setTime(uint32_t seconds, uint32_t dest)
     return (mt_admin_message_set_time(&_mtc, dest, seconds) == 0);
 }
 
+bool SimpleClient::setTimezone(const string &tzdef, uint32_t dest)
+{
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    return (mt_admin_message_set_tzdef(&_mtc, dest, tzdef.c_str()) == 0);
+}
+
 void SimpleClient::gotConfig(const meshtastic_Config &config)
 {
     switch (config.which_payload_variant) {
     case meshtastic_Config_lora_tag:
         gotLoraConfig(config.payload_variant.lora);
+        break;
+    case meshtastic_Config_device_tag:
+        gotDeviceConfig(config.payload_variant.device);
         break;
     default:
         break;
@@ -577,6 +594,15 @@ void SimpleClient::gotConfig(const meshtastic_Config &config)
 void SimpleClient::gotLoraConfig(const meshtastic_Config_LoRaConfig &c)
 {
     _loraConfig = c;
+}
+
+void SimpleClient::gotDeviceConfig(const meshtastic_Config_DeviceConfig &c)
+{
+    _deviceConfig = c;
+    if (c.tzdef[0] != '\0') {
+        setenv("TZ", c.tzdef, 1);
+        tzset();
+    }
 }
 
 void SimpleClient::syncHostClock(uint32_t epoch_seconds)
@@ -593,6 +619,10 @@ void SimpleClient::syncHostClock(uint32_t epoch_seconds)
         settimeofday(&tv, NULL);
         _mtc.last_packet_ts = epoch_seconds;
         _mtc.last_byte_ts = epoch_seconds;
+    }
+    if (_deviceConfig.tzdef[0] != '\0') {
+        setenv("TZ", _deviceConfig.tzdef, 1);
+        tzset();
     }
     _isClockSynced = true;
 }

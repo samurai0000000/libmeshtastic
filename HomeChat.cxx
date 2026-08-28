@@ -6,6 +6,7 @@
 
 #include <stdarg.h>
 #include <time.h>
+#include <sys/time.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -18,6 +19,162 @@
 #ifndef DEBUG_CHATBOT
 #define DEBUG_CHATBOT 0
 #endif
+
+static int monthNameToNumber(const string &m)
+{
+    string s = m;
+    transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return tolower(c); });
+    if (s.rfind("jan", 0) == 0) return 1;
+    if (s.rfind("feb", 0) == 0) return 2;
+    if (s.rfind("mar", 0) == 0) return 3;
+    if (s.rfind("apr", 0) == 0) return 4;
+    if (s.rfind("may", 0) == 0) return 5;
+    if (s.rfind("jun", 0) == 0) return 6;
+    if (s.rfind("jul", 0) == 0) return 7;
+    if (s.rfind("aug", 0) == 0) return 8;
+    if (s.rfind("sep", 0) == 0) return 9;
+    if (s.rfind("oct", 0) == 0) return 10;
+    if (s.rfind("nov", 0) == 0) return 11;
+    if (s.rfind("dec", 0) == 0) return 12;
+    return -1;
+}
+
+static bool computeEpoch(int year, int month, int day,
+                          int hour, int min, int sec,
+                          const string &tz_str, time_t &epoch_out)
+{
+    const char *old_tz = getenv("TZ");
+    string saved_tz = old_tz ? old_tz : "";
+    setenv("TZ", tz_str.c_str(), 1);
+    tzset();
+
+    struct tm tm_in;
+    bzero(&tm_in, sizeof(tm_in));
+    tm_in.tm_year = year - 1900;
+    tm_in.tm_mon = month - 1;
+    tm_in.tm_mday = day;
+    tm_in.tm_hour = hour;
+    tm_in.tm_min = min;
+    tm_in.tm_sec = sec;
+    tm_in.tm_isdst = -1;
+
+    time_t calculated = mktime(&tm_in);
+
+    if (!saved_tz.empty()) {
+        setenv("TZ", saved_tz.c_str(), 1);
+    } else {
+        unsetenv("TZ");
+    }
+    tzset();
+
+    if (calculated <= 0) {
+        return false;
+    }
+
+    epoch_out = calculated;
+    return true;
+}
+
+bool HomeChat::parseTimeBroadcast(const string &message, time_t &epoch_out, string &tz_out)
+{
+    stringstream ss(message);
+    vector<string> tokens;
+    string tok;
+    while (ss >> tok) {
+        tokens.push_back(tok);
+    }
+
+    if (tokens.size() < 3) {
+        return false;
+    }
+
+    // Try scanning for ISO pattern: YYYY-MM-DD HH:MM[:SS] [AM|PM] <TZ>
+    for (size_t i = 0; i + 2 < tokens.size(); i++) {
+        int year = 0, month = 0, day = 0;
+        int hour = 0, min = 0, sec = 0;
+
+        if (sscanf(tokens[i].c_str(), "%d-%d-%d", &year, &month, &day) == 3) {
+            if (year >= 2020 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                if (sscanf(tokens[i + 1].c_str(), "%d:%d:%d", &hour, &min, &sec) >= 2 ||
+                    sscanf(tokens[i + 1].c_str(), "%d:%d", &hour, &min) == 2) {
+                    if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59) {
+                        size_t tz_idx = i + 2;
+                        string ampm_upper = tokens[tz_idx];
+                        transform(ampm_upper.begin(), ampm_upper.end(), ampm_upper.begin(), [](unsigned char c){ return toupper(c); });
+                        if (ampm_upper == "AM" || ampm_upper == "PM") {
+                            if (ampm_upper == "PM" && hour < 12) hour += 12;
+                            if (ampm_upper == "AM" && hour == 12) hour = 0;
+                            tz_idx++;
+                        }
+                        if (tz_idx < tokens.size()) {
+                            string tz_str = tokens[tz_idx];
+                            while (!tz_str.empty() && (tz_str.back() == '.' || tz_str.back() == ',' || tz_str.back() == '!')) {
+                                tz_str.pop_back();
+                            }
+                            if (!tz_str.empty() && tz_str.size() <= 32) {
+                                tz_out = tz_str;
+                                return computeEpoch(year, month, day, hour, min, sec, tz_out, epoch_out);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Try scanning for natural text pattern: HH:MM[:SS] [AM|PM] <TZ> [on] <Month> <DD>[,] <YYYY>
+    for (size_t i = 0; i + 3 < tokens.size(); i++) {
+        int hour = 0, min = 0, sec = 0;
+        if (sscanf(tokens[i].c_str(), "%d:%d:%d", &hour, &min, &sec) >= 2 ||
+            sscanf(tokens[i].c_str(), "%d:%d", &hour, &min) == 2) {
+            if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59) {
+                size_t curr = i + 1;
+                string ampm_upper = tokens[curr];
+                transform(ampm_upper.begin(), ampm_upper.end(), ampm_upper.begin(), [](unsigned char c){ return toupper(c); });
+                if (ampm_upper == "AM" || ampm_upper == "PM") {
+                    if (ampm_upper == "PM" && hour < 12) hour += 12;
+                    if (ampm_upper == "AM" && hour == 12) hour = 0;
+                    curr++;
+                }
+                if (curr >= tokens.size()) continue;
+                string tz_str = tokens[curr++];
+                while (!tz_str.empty() && (tz_str.back() == '.' || tz_str.back() == ',')) {
+                    tz_str.pop_back();
+                }
+
+                if (curr < tokens.size()) {
+                    string on_tok = tokens[curr];
+                    string on_lower = on_tok;
+                    transform(on_lower.begin(), on_lower.end(), on_lower.begin(), [](unsigned char c){ return tolower(c); });
+                    if (on_lower == "on") {
+                        curr++;
+                    }
+                }
+
+                if (curr + 1 < tokens.size()) {
+                    string month_str = tokens[curr++];
+                    string day_str = tokens[curr++];
+                    if (curr < tokens.size()) {
+                        string year_str = tokens[curr++];
+                        while (!day_str.empty() && !isdigit(day_str.back())) day_str.pop_back();
+                        while (!year_str.empty() && !isdigit(year_str.back())) year_str.pop_back();
+
+                        int month = monthNameToNumber(month_str);
+                        int day = atoi(day_str.c_str());
+                        int year = atoi(year_str.c_str());
+
+                        if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 2020 && year <= 2100) {
+                            tz_out = tz_str;
+                            return computeEpoch(year, month, day, hour, min, sec, tz_out, epoch_out);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
 
 void toLowercase(string &s)
 {
@@ -272,6 +429,23 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
                              false)) {
             _nvm->saveNvm();
             syncFromNvm();
+        }
+    }
+
+    if ((fromAuthChan || directMessage) &&
+        (packet.from != _client->whoami()) &&
+        (packet.from != 0)) {
+        time_t parsed_epoch = 0;
+        string parsed_tz;
+        if (parseTimeBroadcast(_message, parsed_epoch, parsed_tz)) {
+            setenv("TZ", parsed_tz.c_str(), 1);
+            tzset();
+
+            if (_client != NULL) {
+                _client->syncHostClock((uint32_t) parsed_epoch);
+                _client->setTime((uint32_t) parsed_epoch);
+                _client->setTimezone(parsed_tz);
+            }
         }
     }
 

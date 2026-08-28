@@ -118,6 +118,8 @@ public:
     bool purgeNode(const string &shortName);
 
     bool setTime(uint32_t seconds = 0, uint32_t dest = 0);
+    bool setTimezone(const string &tzdef, uint32_t dest = 0);
+    void syncHostClock(uint32_t epoch_seconds);
 
 public:
 
@@ -134,6 +136,11 @@ public:
     inline const meshtastic_MyNodeInfo &myNodeInfo(void) const
     {
         return _myNodeInfo;
+    }
+
+    inline const meshtastic_Config_DeviceConfig &deviceConfig(void) const
+    {
+        return _deviceConfig;
     }
 
     inline const map<uint32_t, meshtastic_NodeInfo> &nodeInfos(void) const
@@ -192,8 +199,6 @@ public:
 
 protected:
 
-    void syncHostClock(uint32_t epoch_seconds);
-
     static void mtEvent(struct mt_client *mtc,
                         const void *packet, size_t size,
                         const meshtastic_FromRadio *fromRadio);
@@ -204,6 +209,7 @@ protected:
     virtual void gotNodeInfo(const meshtastic_NodeInfo &nodeInfo);
     virtual void gotConfig(const meshtastic_Config &config);
     virtual void gotLoraConfig(const meshtastic_Config_LoRaConfig &c);
+    virtual void gotDeviceConfig(const meshtastic_Config_DeviceConfig &c);
     virtual void gotChannel(const meshtastic_Channel &channel);
     virtual void gotConfigCompleteId(uint32_t id);
     virtual void gotRebooted(bool rebooted);
@@ -248,6 +254,7 @@ protected:
     meshtastic_MyNodeInfo _myNodeInfo;
     map<uint32_t, meshtastic_NodeInfo> _nodeInfos;
     meshtastic_Config_LoRaConfig _loraConfig;
+    meshtastic_Config_DeviceConfig _deviceConfig;
     map<uint8_t, meshtastic_Channel> _channels;
     map<uint32_t, meshtastic_Position> _positions;
     map<uint32_t, meshtastic_DeviceMetrics> _deviceMetrics;

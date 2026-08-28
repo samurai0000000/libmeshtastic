@@ -467,14 +467,27 @@ print_clock:
         time_t now = time(NULL);
         struct tm ltm;
         localtime_r(&now, &ltm);
-        this->printf("clock: %04d-%02d-%02d %02d:%02d:%02d (sync: %s)\n",
+        const char *htz = getenv("TZ");
+        if (htz == NULL || htz[0] == '\0') {
+            htz = tzname[ltm.tm_isdst > 0 ? 1 : 0];
+            if (htz == NULL || htz[0] == '\0') {
+                htz = "unset";
+            }
+        }
+        const char *rtz = _client->isConnected() ? _client->deviceConfig().tzdef : "";
+        if (rtz == NULL || rtz[0] == '\0') {
+            rtz = "unset";
+        }
+        this->printf("clock: %04d-%02d-%02d %02d:%02d:%02d (sync: %s, tz: %s/%s)\n",
                      ltm.tm_year + 1900,
                      ltm.tm_mon + 1,
                      ltm.tm_mday,
                      ltm.tm_hour,
                      ltm.tm_min,
                      ltm.tm_sec,
-                     _client->isClockSynced() ? "yes" : "no");
+                     _client->isClockSynced() ? "yes" : "no",
+                     htz,
+                     rtz);
     }
 
     return ret;
