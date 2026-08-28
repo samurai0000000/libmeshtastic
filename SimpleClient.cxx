@@ -557,6 +557,44 @@ bool SimpleClient::purgeNode(const string &shortName)
     return purgeNode(nodeId);
 }
 
+static string formatRelativeTime(time_t timestamp)
+{
+    if (timestamp == 0) {
+        return "never";
+    }
+
+    time_t now = time(NULL);
+    long diff = (long)(now - timestamp);
+    if (diff < 0) {
+        diff = 0;
+    }
+
+    if (diff < 60) {
+        return to_string(diff) + "s ago";
+    } else if (diff < 3600) {
+        long min = diff / 60;
+        long sec = diff % 60;
+        if (sec > 0) {
+            return to_string(min) + "m " + to_string(sec) + "s ago";
+        }
+        return to_string(min) + "m ago";
+    } else if (diff < 86400) {
+        long hour = diff / 3600;
+        long min = (diff % 3600) / 60;
+        if (min > 0) {
+            return to_string(hour) + "h " + to_string(min) + "m ago";
+        }
+        return to_string(hour) + "h ago";
+    } else {
+        long day = diff / 86400;
+        long hour = (diff % 86400) / 3600;
+        if (hour > 0) {
+            return to_string(day) + "d " + to_string(hour) + "h ago";
+        }
+        return to_string(day) + "d ago";
+    }
+}
+
 bool SimpleClient::purgeOldNodes(void)
 {
     if (!_isClockSynced) {
@@ -602,10 +640,10 @@ bool SimpleClient::purgeOldNodes(void)
     }
 
     string idStr = idString(targetNodeId);
-    string shortName = lookupShortName(targetNodeId);
+    string agoStr = formatRelativeTime((time_t) oldestLastHeard);
 
     if (purgeNode(targetNodeId)) {
-        ::printf("Purged node '%s' (%s).\n", idStr.c_str(), shortName.c_str());
+        ::printf("Purged node '%s' last heard %s\n", idStr.c_str(), agoStr.c_str());
         return true;
     }
 
