@@ -385,7 +385,7 @@ int SimpleShell::status(int argc, char **argv)
 
     if (!_client->isConnected()) {
         this->printf("Not connected\n");
-        goto done;
+        goto print_clock;
     }
 
     this->printf("Me: %s %s\n",
@@ -461,7 +461,21 @@ int SimpleShell::status(int argc, char **argv)
     this->printf("last mesh packet: %us ago\n",
                  _client->meshDeviceLastRecivedSecondsAgo());
 
-done:
+print_clock:
+
+    {
+        time_t now = time(NULL);
+        struct tm ltm;
+        localtime_r(&now, &ltm);
+        this->printf("clock: %04d-%02d-%02d %02d:%02d:%02d (sync: %s)\n",
+                     ltm.tm_year + 1900,
+                     ltm.tm_mon + 1,
+                     ltm.tm_mday,
+                     ltm.tm_hour,
+                     ltm.tm_min,
+                     ltm.tm_sec,
+                     _client->isClockSynced() ? "yes" : "no");
+    }
 
     return ret;
 }

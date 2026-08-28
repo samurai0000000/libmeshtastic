@@ -93,6 +93,9 @@ extern int mt_admin_message_commit_edit_settings(struct mt_client *mtc,
 extern int mt_admin_message_remove_by_nodenum(struct mt_client *mtc,
                                               uint32_t dest,
                                               uint32_t nodenum);
+extern int mt_admin_message_set_time(struct mt_client *mtc,
+                                     uint32_t dest,
+                                     uint32_t epoch_seconds);
 
 extern time_t mt_impl_now(void);
 

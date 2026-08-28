@@ -117,11 +117,18 @@ public:
     bool purgeNode(uint32_t nodeId);
     bool purgeNode(const string &shortName);
 
+    bool setTime(uint32_t seconds = 0, uint32_t dest = 0);
+
 public:
 
     inline bool isConnected(void) const
     {
         return _isConnected;
+    }
+
+    inline bool isClockSynced(void) const
+    {
+        return _isClockSynced;
     }
 
     inline const meshtastic_MyNodeInfo &myNodeInfo(void) const
@@ -185,6 +192,8 @@ public:
 
 protected:
 
+    void syncHostClock(uint32_t epoch_seconds);
+
     static void mtEvent(struct mt_client *mtc,
                         const void *packet, size_t size,
                         const meshtastic_FromRadio *fromRadio);
@@ -235,6 +244,7 @@ public:
 protected:
 
     bool _isConnected;
+    bool _isClockSynced;
     meshtastic_MyNodeInfo _myNodeInfo;
     map<uint32_t, meshtastic_NodeInfo> _nodeInfos;
     meshtastic_Config_LoRaConfig _loraConfig;

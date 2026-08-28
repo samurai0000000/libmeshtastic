@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <sys/time.h>
 #include <SimpleClient.hxx>
 
 SimpleClient::SimpleClient()
@@ -16,6 +17,7 @@ SimpleClient::SimpleClient()
     _mtc.handler = this->mtEvent;
     _mtc.ctx = this;
     _isConnected = false;
+    _isClockSynced = false;
     resetMeshStats();
 }
 
@@ -549,6 +551,18 @@ bool SimpleClient::purgeNode(const string &shortName)
     return purgeNode(nodeId);
 }
 
+bool SimpleClient::setTime(uint32_t seconds, uint32_t dest)
+{
+    if (dest == 0) {
+        dest = whoami();
+    }
+    if (seconds == 0) {
+        seconds = (uint32_t) time(NULL);
+    }
+
+    return (mt_admin_message_set_time(&_mtc, dest, seconds) == 0);
+}
+
 void SimpleClient::gotConfig(const meshtastic_Config &config)
 {
     switch (config.which_payload_variant) {
@@ -565,15 +579,35 @@ void SimpleClient::gotLoraConfig(const meshtastic_Config_LoRaConfig &c)
     _loraConfig = c;
 }
 
+void SimpleClient::syncHostClock(uint32_t epoch_seconds)
+{
+    if (epoch_seconds < 1700000000U) {
+        return;
+    }
+
+    time_t now = time(NULL);
+    if ((now < 1700000000U) || (labs(now - (time_t) epoch_seconds) >= 60)) {
+        struct timeval tv;
+        tv.tv_sec = (time_t) epoch_seconds;
+        tv.tv_usec = 0;
+        settimeofday(&tv, NULL);
+        _mtc.last_packet_ts = epoch_seconds;
+        _mtc.last_byte_ts = epoch_seconds;
+    }
+    _isClockSynced = true;
+}
+
 void SimpleClient::updateNodeFromPacket(const meshtastic_MeshPacket &packet)
 {
+    syncHostClock(packet.rx_time);
+
     if (packet.from == 0) {
         return;
     }
 
     meshtastic_NodeInfo &info = _nodeInfos[packet.from];
     info.num = packet.from;
-    info.last_heard = (uint32_t) time(NULL);
+    info.last_heard = (packet.rx_time > 0) ? packet.rx_time : (uint32_t) time(NULL);
     if (packet.rx_snr != 0.0f) {
         info.snr = packet.rx_snr;
     }
@@ -679,6 +713,11 @@ void SimpleClient::gotNodeInfo(const meshtastic_NodeInfo &nodeInfo)
 {
     uint32_t num = nodeInfo.num;
 
+    syncHostClock(nodeInfo.last_heard);
+    if (nodeInfo.has_position) {
+        syncHostClock(nodeInfo.position.time);
+    }
+
     _nodeInfos[num] = nodeInfo;
 }
 
@@ -719,7 +758,8 @@ void SimpleClient::gotPosition(const meshtastic_MeshPacket &packet,
                                const meshtastic_Position &position)
 {
     (void)(packet);
-    (void)(position);
+    syncHostClock(position.time);
+    syncHostClock(position.timestamp);
 }
 
 void SimpleClient::gotUser(const meshtastic_MeshPacket &packet,
@@ -766,6 +806,8 @@ void SimpleClient::gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMeta
 void SimpleClient::gotTelemetry(const meshtastic_MeshPacket &packet,
                                 const meshtastic_Telemetry &telemetry)
 {
+    syncHostClock(telemetry.time);
+
     switch (telemetry.which_variant) {
     case meshtastic_Telemetry_device_metrics_tag:
         gotDeviceMetrics(packet, telemetry.variant.device_metrics);
@@ -864,7 +906,17 @@ uint32_t SimpleClient::meshDevicePacketsSent(void) const
 
 uint32_t SimpleClient::meshDeviceLastRecivedSecondsAgo(void) const
 {
-    return (uint32_t) (mt_impl_now() - _mtc.last_packet_ts);
+    time_t now = mt_impl_now();
+
+    if (_mtc.last_packet_ts == 0 || now < (time_t) _mtc.last_packet_ts) {
+        return 0;
+    }
+
+    if ((_mtc.last_packet_ts < 1700000000U) && (now >= 1700000000U)) {
+        return 0;
+    }
+
+    return (uint32_t) (now - _mtc.last_packet_ts);
 }
 
 /*
