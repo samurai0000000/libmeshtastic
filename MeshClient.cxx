@@ -34,6 +34,7 @@ MeshClient::~MeshClient()
 
 void MeshClient::clear(void)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     SimpleClient::clear();
 
     _deviceConfig = meshtastic_Config_DeviceConfig();
@@ -229,6 +230,7 @@ bool MeshClient::purgeOldNodes(void)
 
 unsigned int MeshClient::hopsAway(uint32_t node_num) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     uint8_t hops = 0xffU;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
 
@@ -254,6 +256,7 @@ void MeshClient::mtEvent(struct mt_client *mtc,
                          const meshtastic_FromRadio *fromRadio)
 {
     MeshClient *client = (MeshClient *) mtc->ctx;
+    lock_guard<recursive_mutex> lock(client->_mutex);
 
     (void)(packet);
     (void)(size);

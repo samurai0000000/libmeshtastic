@@ -32,6 +32,8 @@ SimpleClient::~SimpleClient()
 
 void SimpleClient::clear(void)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
+
     _nodeInfos.clear();
     bzero(&_myNodeInfo, sizeof(_myNodeInfo));
     bzero(&_loraConfig, sizeof(_loraConfig));
@@ -50,6 +52,7 @@ void SimpleClient::clear(void)
 
 uint32_t SimpleClient::whoami(void) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return _myNodeInfo.my_node_num;
 }
 
@@ -71,6 +74,7 @@ string SimpleClient::idString(uint32_t id) const
 
 string SimpleClient::lookupLongName(uint32_t id, bool noUnprintable) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     string s;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
 
@@ -98,6 +102,7 @@ string SimpleClient::lookupLongName(uint32_t id, bool noUnprintable) const
 
 string SimpleClient::lookupShortName(uint32_t id, bool noUnprintable) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     string s;
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
 
@@ -141,6 +146,7 @@ string SimpleClient::getDisplayName(uint32_t id, bool noUnprintable) const
 
 uint32_t SimpleClient::getId(const string &name) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     uint32_t id = 0xffffffffU;
     uint32_t node_num = 0xffffffffU;
     map<uint8_t, meshtastic_Channel>::const_iterator it;
@@ -179,6 +185,7 @@ uint32_t SimpleClient::getId(const string &name) const
 
 string SimpleClient::getChannelName(uint8_t channel) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     string name;
     map<uint8_t, meshtastic_Channel>::const_iterator it;
 
@@ -227,6 +234,7 @@ string SimpleClient::getChannelName(uint8_t channel) const
 
 uint8_t SimpleClient::getChannel(const string &name) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     uint8_t channel = 0xffU;
 
     for (map<uint8_t, meshtastic_Channel>::const_iterator it =
@@ -242,6 +250,7 @@ uint8_t SimpleClient::getChannel(const string &name) const
 
 bool SimpleClient::isChannelValid(uint8_t channel) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     map<uint8_t, meshtastic_Channel>::const_iterator it;
 
     it = _channels.find(channel);
@@ -265,6 +274,7 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
                            const meshtastic_FromRadio *fromRadio)
 {
     SimpleClient *sc = (SimpleClient *) mtc->ctx;
+    lock_guard<recursive_mutex> lock(sc->_mutex);
 
     (void)(packet);
     (void)(size);
@@ -302,6 +312,7 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
 bool SimpleClient::sendDisconnect(void)
 {
     bool result = false;
+    lock_guard<recursive_mutex> lock(_mutex);
 
     result = (mt_send_disconnect(&_mtc) == 0);
     if (result) {
@@ -315,6 +326,7 @@ bool SimpleClient::sendDisconnect(void)
 bool SimpleClient::sendWantConfig(void)
 {
     bool result = false;
+    lock_guard<recursive_mutex> lock(_mutex);
 
     result = (mt_send_want_config(&_mtc) == 0);
     if (result) {
@@ -327,6 +339,7 @@ bool SimpleClient::sendWantConfig(void)
 bool SimpleClient::sendHeartbeat(void)
 {
     bool result = false;
+    lock_guard<recursive_mutex> lock(_mutex);
 
     result = (mt_send_heartbeat(&_mtc) == 0);
     if (result) {
@@ -521,12 +534,14 @@ SimpleClient::NodeFilterRange SimpleClient::getLastHeardNodes(uint32_t seconds) 
 
 bool SimpleClient::commitEditSettings(void)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return (mt_admin_message_commit_edit_settings(&_mtc, whoami()) == 0);
 }
 
 bool SimpleClient::purgeNode(uint32_t nodeId)
 {
     bool result = false;
+    lock_guard<recursive_mutex> lock(_mutex);
 
     _nodeInfos.erase(nodeId);
     _positions.erase(nodeId);
@@ -539,9 +554,6 @@ bool SimpleClient::purgeNode(uint32_t nodeId)
     _hostMetrics.erase(nodeId);
 
     result = (mt_admin_message_remove_by_nodenum(&_mtc, whoami(), nodeId) == 0);
-    if (result) {
-        commitEditSettings();
-    }
 
     return result;
 }
@@ -597,6 +609,8 @@ static string formatRelativeTime(time_t timestamp)
 
 bool SimpleClient::purgeOldNodes(void)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
+
     if (!_isClockSynced) {
         return false;
     }
@@ -652,6 +666,8 @@ bool SimpleClient::purgeOldNodes(void)
 
 bool SimpleClient::setTime(uint32_t seconds, uint32_t dest)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
+
     if (dest == 0) {
         dest = whoami();
     }
@@ -664,6 +680,8 @@ bool SimpleClient::setTime(uint32_t seconds, uint32_t dest)
 
 bool SimpleClient::setTimezone(const string &tzdef, uint32_t dest)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
+
     if (dest == 0) {
         dest = whoami();
     }

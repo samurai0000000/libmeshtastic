@@ -124,6 +124,16 @@ public:
 
 public:
 
+    inline void lock(void) const
+    {
+        _mutex.lock();
+    }
+
+    inline void unlock(void) const
+    {
+        _mutex.unlock();
+    }
+
     inline bool isConnected(void) const
     {
         return _isConnected;
@@ -260,6 +270,8 @@ public:
     struct mt_client _mtc;
 
 protected:
+
+    mutable recursive_mutex _mutex;
 
     bool _isConnected;
     bool _isClockSynced;
