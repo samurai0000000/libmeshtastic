@@ -796,6 +796,7 @@ void MeshClient::run(void)
 void MeshClient::crontab(const struct tm *now)
 {
     (void)(now);
+    purgeOldNodes();
 }
 
 void MeshClient::loop(void)

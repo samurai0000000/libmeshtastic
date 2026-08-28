@@ -14,7 +14,7 @@
 
 using namespace std;
 
-#define HOUSEKEEPING_INTERVAL 10
+#define HOUSEKEEPING_INTERVAL 60
 
 class SimpleShell {
 
