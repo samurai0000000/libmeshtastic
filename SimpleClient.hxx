@@ -13,6 +13,68 @@
 #include <mutex>
 #include <libmeshtastic.h>
 
+#if !defined(_GLIBCXX_HAS_GTHREADS) && (!defined(_LIBCPP_VERSION) || defined(_LIBCPP_HAS_NO_THREADS))
+
+#if defined(INC_FREERTOS_H) || (defined(__has_include) && __has_include(<FreeRTOS.h>))
+#include <FreeRTOS.h>
+#include <semphr.h>
+#include <task.h>
+
+class recursive_mutex {
+public:
+    recursive_mutex() : _handle(NULL) {
+        _handle = xSemaphoreCreateRecursiveMutex();
+    }
+
+    ~recursive_mutex() {
+        if (_handle != NULL) {
+            vSemaphoreDelete(_handle);
+            _handle = NULL;
+        }
+    }
+
+    recursive_mutex(const recursive_mutex &) = delete;
+    recursive_mutex &operator=(const recursive_mutex &) = delete;
+
+    inline void lock(void) const {
+        if (_handle == NULL) {
+            const_cast<recursive_mutex *>(this)->_handle = xSemaphoreCreateRecursiveMutex();
+        }
+        if (_handle != NULL && xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
+            xSemaphoreTakeRecursive(_handle, portMAX_DELAY);
+        }
+    }
+
+    inline void unlock(void) const {
+        if (_handle != NULL && xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
+            xSemaphoreGiveRecursive(_handle);
+        }
+    }
+
+private:
+    SemaphoreHandle_t _handle;
+};
+
+#else
+
+class recursive_mutex {
+public:
+    recursive_mutex() {}
+    ~recursive_mutex() {}
+    recursive_mutex(const recursive_mutex &) = delete;
+    recursive_mutex &operator=(const recursive_mutex &) = delete;
+    inline void lock(void) const {}
+    inline void unlock(void) const {}
+};
+
+#endif
+
+namespace std {
+    using ::recursive_mutex;
+}
+
+#endif
+
 using namespace std;
 
 /*
