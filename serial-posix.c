@@ -109,6 +109,7 @@ int mt_serial_detach(struct mt_client *mtc)
     mtc->fd = -1;
     mtc->device = NULL;
     mtc->inbuf_len = 0;
+    mtc->last_byte_ts = 0;
 
     ret = 0;
 
@@ -117,10 +118,36 @@ done:
     return ret;
 }
 
-static void mt_log_append(struct mt_client *mtc, uint8_t *buf, size_t size)
+static void mt_log_append(struct mt_client *mtc, const uint8_t *buf, size_t size)
 {
     if (mtc->logger != NULL) {
         mtc->logger(mtc, (const char *) buf, size);
+    }
+}
+
+static void mt_serial_resync(struct mt_client *mtc)
+{
+    size_t i;
+
+    if (mtc->inbuf_len == 0) {
+        return;
+    }
+
+    /* Scan for next START1 starting after the current initial byte */
+    for (i = 1; i < mtc->inbuf_len; i++) {
+        if (mtc->inbuf[i] == MT_PB_START1) {
+            break;
+        }
+    }
+
+    /* Log discarded noisy/corrupted bytes */
+    mt_log_append(mtc, mtc->inbuf, i);
+
+    if (i < mtc->inbuf_len) {
+        memmove(mtc->inbuf, mtc->inbuf + i, mtc->inbuf_len - i);
+        mtc->inbuf_len -= i;
+    } else {
+        mtc->inbuf_len = 0;
     }
 }
 
@@ -130,127 +157,122 @@ int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
     struct timeval timeout;
     int nfds;
     fd_set rfds;
-    const struct mt_pb_header *mt_pb_header;
-    uint16_t mt_pb_len;
-    size_t should_read = 0;
+    size_t should_read;
 
     if (mtc == NULL) {
         errno = EINVAL;
-        ret = -1;
-        goto done;
+        return -1;
     }
 
     if (mtc->fd < 0) {
         errno = EBADFD;
-        ret = -1;
-        goto done;
+        return -1;
     }
 
-    timeout.tv_sec = timeout_ms / 1000;
-    timeout.tv_usec = (timeout_ms - (timeout.tv_sec * 1000)) * 1000;
-
-    FD_ZERO(&rfds);
-    FD_SET(mtc->fd, &rfds);
-    nfds = mtc->fd + 1;
-
-    ret = select(nfds, &rfds, NULL, NULL, &timeout);
-    if (ret == -1) {
-        fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
-        goto done;
-    } else if (ret == 0) {
-        goto done;
+    /* Stalled partial frame timeout recovery */
+    if ((mtc->inbuf_len > 0) && (mtc->last_byte_ts != 0)) {
+        time_t now = mt_impl_now();
+        if (now >= (time_t) mtc->last_byte_ts + 2) {
+            mt_serial_resync(mtc);
+            mtc->last_byte_ts = (mtc->inbuf_len > 0) ? (uint32_t) now : 0;
+        }
     }
 
-    mt_pb_header = (const struct mt_pb_header *) mtc->inbuf;
-    mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;
+    /* Wait and read available bytes from file descriptor */
+    should_read = sizeof(mtc->inbuf) - mtc->inbuf_len;
+    if (should_read > 0) {
+        timeout.tv_sec = timeout_ms / 1000;
+        timeout.tv_usec = (timeout_ms - (timeout.tv_sec * 1000)) * 1000;
 
-    if ((mt_pb_header->start1 == MT_PB_START1) &&
-        (mt_pb_header->start2 == MT_PB_START2) &&
-        (mtc->inbuf_len >= sizeof(struct mt_pb_header)) &&
-        (mt_pb_len >
-         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header)))) {
-        /* Claimed payload does not fit; drop the frame and resync */
-        mt_log_append(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        should_read = 1;
-    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
-               (mt_pb_header->start2 == MT_PB_START2) &&
-               (mtc->inbuf_len < sizeof(struct mt_pb_header))) {
-        /* Header is sane but missing length, look for mt_pb_len */
-        should_read = sizeof(struct mt_pb_header) - mtc->inbuf_len;
-    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
-               (mt_pb_header->start2 == MT_PB_START2) &&
-               (mtc->inbuf_len >= sizeof(struct mt_pb_header))) {
-        /* Header is sane, we should read till the packet is filled */
-        should_read = (sizeof(struct mt_pb_header) + mt_pb_len) -
-            mtc->inbuf_len;
-    } else if (mtc->inbuf_len == 0) {
-        /* Look for START1 */
-        should_read = 1;
-    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
-               (mtc->inbuf_len == 1)) {
-        /* Look for START2 */
-        should_read = 1;
-    } else {
-        /* Start over and look for START1 */
-        mt_log_append(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        should_read = 1;
+        FD_ZERO(&rfds);
+        FD_SET(mtc->fd, &rfds);
+        nfds = mtc->fd + 1;
+
+        ret = select(nfds, &rfds, NULL, NULL, &timeout);
+        if (ret == -1) {
+            if (errno == EINTR) {
+                return 0;
+            }
+            fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
+            return -1;
+        } else if (ret > 0) {
+            ret = read(mtc->fd, mtc->inbuf + mtc->inbuf_len, should_read);
+            if (ret > 0) {
+                mtc->inbuf_len += (size_t) ret;
+                mtc->last_byte_ts = (uint32_t) mt_impl_now();
+            } else if (ret == 0) {
+                fprintf(stderr, "%s: EOF!\n", mtc->device);
+                mtc->inbuf_len = 0;
+                errno = EIO;
+                return -1;
+            } else if (ret < 0) {
+                if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
+                    fprintf(stderr, "%s: %s!\n", mtc->device, strerror(errno));
+                    mtc->inbuf_len = 0;
+                    return -1;
+                }
+            }
+        }
     }
 
-    if ((mt_pb_header->start1 == MT_PB_START1) &&
-        (mt_pb_header->start2 == MT_PB_START2) &&
-        (mtc->inbuf_len >= sizeof(struct mt_pb_header)) &&
-        (mt_pb_len <=
-         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) &&
-        (mtc->inbuf_len == (sizeof(struct mt_pb_header) + mt_pb_len))) {
-        ret = mt_recv_packet(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        goto done;
+    /* Process and dispatch all complete frames buffered in inbuf */
+    while (mtc->inbuf_len > 0) {
+        if (mtc->inbuf[0] != MT_PB_START1) {
+            mt_serial_resync(mtc);
+            continue;
+        }
+
+        if ((mtc->inbuf_len >= 2) && (mtc->inbuf[1] != MT_PB_START2)) {
+            mt_serial_resync(mtc);
+            continue;
+        }
+
+        if (mtc->inbuf_len >= sizeof(struct mt_pb_header)) {
+            const struct mt_pb_header *hdr =
+                (const struct mt_pb_header *) mtc->inbuf;
+            uint16_t plen = ((uint16_t) hdr->h_len << 8) | hdr->l_len;
+            if (plen > (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) {
+                mt_serial_resync(mtc);
+                continue;
+            }
+
+            size_t total_len = sizeof(struct mt_pb_header) + plen;
+            if (mtc->inbuf_len >= total_len) {
+                int pkt_ret = mt_recv_packet(mtc, mtc->inbuf, total_len);
+                if (pkt_ret != 0) {
+                    /* Corrupted frame or decode error: resync non-fatally */
+                    mt_serial_resync(mtc);
+                    continue;
+                } else {
+                    /* Successfully received packet: shift out consumed frame */
+                    if (mtc->inbuf_len > total_len) {
+                        memmove(mtc->inbuf, mtc->inbuf + total_len,
+                                mtc->inbuf_len - total_len);
+                        mtc->inbuf_len -= total_len;
+                    } else {
+                        mtc->inbuf_len = 0;
+                    }
+                    continue;
+                }
+            }
+        }
+
+        /* Incomplete frame awaiting more bytes from UART */
+        break;
     }
 
-    if (should_read == 0) {
-        ret = 0;
-        goto done;
+    if (mtc->inbuf_len == 0) {
+        mtc->last_byte_ts = 0;
     }
 
-    ret = read(mtc->fd, mtc->inbuf + mtc->inbuf_len, should_read);
-    if (ret == -1) {
-        fprintf(stderr, "%s: %s!\n", mtc->device, strerror(errno));
-        mtc->inbuf_len = 0;
-        goto done;
-    } else if (ret == 0) {
-        fprintf(stderr, "%s: EOF!\n", mtc->device);
-        mtc->inbuf_len = 0;
-        errno = EIO;
-        ret = -1;
-        goto done;
-    }
-
-    mtc->inbuf_len += (size_t) ret;
-    mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;
-
-    if ((mt_pb_header->start1 == MT_PB_START1) &&
-        (mt_pb_header->start2 == MT_PB_START2) &&
-        (mt_pb_len <=
-         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) &&
-        (mtc->inbuf_len == (sizeof(struct mt_pb_header) + mt_pb_len))) {
-        ret = mt_recv_packet(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        goto done;
-    }
-
-    ret = 0;
-
-done:
-
-    return ret;
+    return 0;
 }
 
 int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
                    size_t size)
 {
     int ret = 0;
+    ssize_t written;
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -270,15 +292,25 @@ int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
         goto done;
     }
 
+    if (packet == NULL || size == 0) {
+        return 0;
+    }
+
     while (size > 0) {
-        ret = write(mtc->fd, packet, size);
-        if (ret == -1) {
+        written = write(mtc->fd, packet, size);
+        if (written < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+                break;
+            }
             fprintf(stderr, "%s: %s!\n", mtc->device, strerror(errno));
+            ret = -1;
             goto done;
+        } else if (written == 0) {
+            break;
         }
 
-        size -= (size_t) ret;
-        packet += (size_t) ret;
+        size -= (size_t) written;
+        packet += (size_t) written;
     }
 
     ret = 0;

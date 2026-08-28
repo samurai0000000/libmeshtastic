@@ -5,6 +5,7 @@
  */
 
 #include <stdarg.h>
+#include <string.h>
 #include <errno.h>
 #include <libmeshtastic.h>
 #include <serial.h>
@@ -22,6 +23,7 @@ int mt_serial_attach(struct mt_client *mtc, const char *device)
     }
 
     mtc->inbuf_len = 0;
+    mtc->last_byte_ts = 0;
 
 done:
 
@@ -30,140 +32,166 @@ done:
 
 int mt_serial_detach(struct mt_client *mtc)
 {
-    (void)(mtc);
+    if (mtc != NULL) {
+        mtc->inbuf_len = 0;
+        mtc->last_byte_ts = 0;
+    }
+
     return 0;
 }
 
-static void mt_log_append(struct mt_client *mtc, uint8_t *buf, size_t size)
+static void mt_log_append(struct mt_client *mtc, const uint8_t *buf, size_t size)
 {
     if (mtc->logger != NULL) {
         mtc->logger(mtc, (const char *) buf, size);
     }
 }
 
+static void mt_serial_resync(struct mt_client *mtc)
+{
+    size_t i;
+
+    if (mtc->inbuf_len == 0) {
+        return;
+    }
+
+    /* Scan for next START1 starting after the current initial byte */
+    for (i = 1; i < mtc->inbuf_len; i++) {
+        if (mtc->inbuf[i] == MT_PB_START1) {
+            break;
+        }
+    }
+
+    /* Log discarded noisy/corrupted bytes */
+    mt_log_append(mtc, mtc->inbuf, i);
+
+    if (i < mtc->inbuf_len) {
+        memmove(mtc->inbuf, mtc->inbuf + i, mtc->inbuf_len - i);
+        mtc->inbuf_len -= i;
+    } else {
+        mtc->inbuf_len = 0;
+    }
+}
+
 int mt_serial_process(struct mt_client *mtc, uint32_t timeout_ms)
 {
     int ret = 0;
-    const struct mt_pb_header *mt_pb_header;
-    uint16_t mt_pb_len;
-    size_t should_read = 0;
+    size_t should_read;
 
     (void)(timeout_ms);
 
     if (mtc == NULL) {
         errno = EINVAL;
-        ret = -1;
-        goto done;
+        return -1;
     }
 
-    mt_pb_header = (const struct mt_pb_header *) mtc->inbuf;
-    mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;
-
-    if ((mt_pb_header->start1 == MT_PB_START1) &&
-        (mt_pb_header->start2 == MT_PB_START2) &&
-        (mtc->inbuf_len >= sizeof(struct mt_pb_header)) &&
-        (mt_pb_len >
-         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header)))) {
-        /* Claimed payload does not fit; drop the frame and resync */
-        mt_log_append(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        should_read = 1;
-    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
-               (mt_pb_header->start2 == MT_PB_START2) &&
-               (mtc->inbuf_len < sizeof(struct mt_pb_header))) {
-        /* Header is sane but missing length, look for mt_pb_len */
-        should_read = sizeof(struct mt_pb_header) - mtc->inbuf_len;
-    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
-               (mt_pb_header->start2 == MT_PB_START2) &&
-               (mtc->inbuf_len >= sizeof(struct mt_pb_header))) {
-        /* Header is sane, we should read till the packet is filled */
-        should_read = (sizeof(struct mt_pb_header) + mt_pb_len) -
-            mtc->inbuf_len;
-    } else if (mtc->inbuf_len == 0) {
-        /* Look for START1 */
-        should_read = 1;
-    } else if ((mt_pb_header->start1 == MT_PB_START1) &&
-               (mtc->inbuf_len == 1)) {
-        /* Look for START2 */
-        should_read = 1;
-    } else {
-        /* Start over and look for START1 */
-        mt_log_append(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        should_read = 1;
+    /* Stalled partial frame timeout recovery */
+    if ((mtc->inbuf_len > 0) && (mtc->last_byte_ts != 0)) {
+        time_t now = mt_impl_now();
+        if (now >= (time_t) mtc->last_byte_ts + 2) {
+            mt_serial_resync(mtc);
+            mtc->last_byte_ts = (mtc->inbuf_len > 0) ? (uint32_t) now : 0;
+        }
     }
 
-    if ((mt_pb_header->start1 == MT_PB_START1) &&
-        (mt_pb_header->start2 == MT_PB_START2) &&
-        (mtc->inbuf_len >= sizeof(struct mt_pb_header)) &&
-        (mt_pb_len <=
-         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) &&
-        (mtc->inbuf_len == (sizeof(struct mt_pb_header) + mt_pb_len))) {
-        ret = mt_recv_packet(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        mtc->inbuf[0] = 0x0;
-        mtc->inbuf[1] = 0x0;
-        goto done;
+    /* Read all currently available bytes from UART FIFO up to inbuf capacity */
+    should_read = sizeof(mtc->inbuf) - mtc->inbuf_len;
+    if (should_read > 0) {
+        ret = serial_rx_ready();
+        if (ret > 0) {
+            if ((size_t) ret < should_read) {
+                should_read = (size_t) ret;
+            }
+
+            ret = serial_read(mtc->inbuf + mtc->inbuf_len, should_read);
+            if (ret > 0) {
+                mtc->inbuf_len += (size_t) ret;
+                mtc->last_byte_ts = (uint32_t) mt_impl_now();
+            } else if (ret < 0) {
+                return ret;
+            }
+        }
     }
 
-    if (should_read == 0) {
-        ret = 0;
-        goto done;
+    /* Process and dispatch all complete frames buffered in inbuf */
+    while (mtc->inbuf_len > 0) {
+        if (mtc->inbuf[0] != MT_PB_START1) {
+            mt_serial_resync(mtc);
+            continue;
+        }
+
+        if ((mtc->inbuf_len >= 2) && (mtc->inbuf[1] != MT_PB_START2)) {
+            mt_serial_resync(mtc);
+            continue;
+        }
+
+        if (mtc->inbuf_len >= sizeof(struct mt_pb_header)) {
+            const struct mt_pb_header *hdr =
+                (const struct mt_pb_header *) mtc->inbuf;
+            uint16_t plen = ((uint16_t) hdr->h_len << 8) | hdr->l_len;
+            if (plen > (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) {
+                mt_serial_resync(mtc);
+                continue;
+            }
+
+            size_t total_len = sizeof(struct mt_pb_header) + plen;
+            if (mtc->inbuf_len >= total_len) {
+                int pkt_ret = mt_recv_packet(mtc, mtc->inbuf, total_len);
+                if (pkt_ret != 0) {
+                    /* Corrupted frame or decode error: resync non-fatally */
+                    mt_serial_resync(mtc);
+                    continue;
+                } else {
+                    /* Successfully received packet: shift out consumed frame */
+                    if (mtc->inbuf_len > total_len) {
+                        memmove(mtc->inbuf, mtc->inbuf + total_len,
+                                mtc->inbuf_len - total_len);
+                        mtc->inbuf_len -= total_len;
+                    } else {
+                        mtc->inbuf_len = 0;
+                    }
+                    continue;
+                }
+            }
+        }
+
+        /* Incomplete frame awaiting more bytes from UART */
+        break;
     }
 
-    if (serial_rx_ready() >= 0) {
-        ret = serial_read(mtc->inbuf + mtc->inbuf_len, should_read);
-    } else {
-        ret = 0;
+    if (mtc->inbuf_len == 0) {
+        mtc->last_byte_ts = 0;
     }
 
-    if (ret < 0) {
-        goto done;
-    } else if (ret == 0) {
-        ret = 0;
-        goto done;
-    }
-
-    mtc->inbuf_len += (size_t) ret;
-    mt_pb_len = (mt_pb_header->h_len << 8) | mt_pb_header->l_len;
-
-    if ((mt_pb_header->start1 == MT_PB_START1) &&
-        (mt_pb_header->start2 == MT_PB_START2) &&
-        (mt_pb_len <=
-         (sizeof(mtc->inbuf) - sizeof(struct mt_pb_header))) &&
-        (mtc->inbuf_len == (sizeof(struct mt_pb_header) + mt_pb_len))) {
-        ret = mt_recv_packet(mtc, mtc->inbuf, mtc->inbuf_len);
-        mtc->inbuf_len = 0;
-        mtc->inbuf[0] = 0x0;
-        mtc->inbuf[1] = 0x0;
-        goto done;
-    }
-
-    ret = 0;
-
-done:
-
-    return ret;
+    return 0;
 }
 
 int mt_serial_send(struct mt_client *mtc, const uint8_t *packet,
                    size_t size)
 {
     int ret = 0;
+    int written;
 
     (void)(mtc);
 
-    while (size > 0) {
-        ret = serial_write(packet, size);
-        if (ret == -1) {
-            usb_printf("serial write() returned %d!\n", ret);
-            goto done;
-        }
-
-        size -= (size_t) ret;
-        packet += (size_t) ret;
+    if (packet == NULL || size == 0) {
+        return 0;
     }
 
+    while (size > 0) {
+        written = serial_write(packet, size);
+        if (written < 0) {
+            usb_printf("serial write() returned %d!\n", written);
+            ret = -1;
+            goto done;
+        } else if (written == 0) {
+            /* TX buffer full - avoid busy loop */
+            break;
+        }
+
+        size -= (size_t) written;
+        packet += (size_t) written;
+    }
 
     ret = 0;
 

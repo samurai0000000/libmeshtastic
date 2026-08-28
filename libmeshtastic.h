@@ -58,6 +58,7 @@ struct mt_client
     uint32_t packets_rx;
     uint32_t packets_tx;
     uint32_t last_packet_ts;
+    uint32_t last_byte_ts;
 };
 
 #if defined(LIB_PICO_PLATFORM)
