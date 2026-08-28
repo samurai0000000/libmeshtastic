@@ -58,6 +58,7 @@ public:
 
     bool purgeNode(uint32_t nodeId);
     bool purgeNode(const string &shortName);
+    virtual bool purgeOldNodes(void);
 
     unsigned int hopsAway(uint32_t node_num) const;
     unsigned int hopsAway(const meshtastic_MeshPacket &packet) const;

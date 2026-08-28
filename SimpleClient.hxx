@@ -116,6 +116,7 @@ public:
 
     bool purgeNode(uint32_t nodeId);
     bool purgeNode(const string &shortName);
+    virtual bool purgeOldNodes(void);
 
     bool setTime(uint32_t seconds = 0, uint32_t dest = 0);
     bool setTimezone(const string &tzdef, uint32_t dest = 0);

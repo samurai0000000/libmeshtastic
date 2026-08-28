@@ -15,6 +15,7 @@ SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
     _ctx = NULL;
     _inproc.i = 0;
     _since = time(NULL);
+    _lastHouseKeeping = time(NULL);
     _help_list.push_back("help");
     _help_list.push_back("version");
     _help_list.push_back("system");
@@ -116,7 +117,24 @@ int SimpleShell::process(void)
         }
     }
 
+    time_t now = time(NULL);
+    if (now < _lastHouseKeeping) {
+        _lastHouseKeeping = now;
+    } else if ((now - _lastHouseKeeping) >= HOUSEKEEPING_INTERVAL) {
+        if (_inproc.i == 0) {
+            this->houseKeeping();
+            _lastHouseKeeping = now;
+        }
+    }
+
     return ret;
+}
+
+void SimpleShell::houseKeeping(void)
+{
+    if (_client) {
+        _client->purgeOldNodes();
+    }
 }
 
 int SimpleShell::tx_write(const uint8_t *buf, size_t size)

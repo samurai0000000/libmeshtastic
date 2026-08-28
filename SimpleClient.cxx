@@ -557,6 +557,61 @@ bool SimpleClient::purgeNode(const string &shortName)
     return purgeNode(nodeId);
 }
 
+bool SimpleClient::purgeOldNodes(void)
+{
+    if (!_isClockSynced) {
+        return false;
+    }
+
+    time_t now = time(NULL);
+    const uint32_t ONE_WEEK_SECONDS = 7 * 24 * 60 * 60; // 604800
+    uint32_t targetNodeId = 0;
+    bool candidateFound = false;
+    uint32_t oldestLastHeard = 0xffffffffU;
+
+    for (map<uint32_t, meshtastic_NodeInfo>::const_iterator it = _nodeInfos.begin();
+         it != _nodeInfos.end(); it++) {
+        uint32_t nodeId = it->first;
+        if (nodeId == 0 || nodeId == 0xffffffffU || nodeId == whoami()) {
+            continue;
+        }
+
+        const meshtastic_NodeInfo &info = it->second;
+        uint32_t lastHeard = info.last_heard;
+        bool qualifies = false;
+
+        if (lastHeard == 0) {
+            qualifies = true;
+        } else if (now >= (time_t) lastHeard) {
+            if ((uint32_t)(now - (time_t) lastHeard) > ONE_WEEK_SECONDS) {
+                qualifies = true;
+            }
+        }
+
+        if (qualifies) {
+            if (!candidateFound || (lastHeard < oldestLastHeard)) {
+                candidateFound = true;
+                oldestLastHeard = lastHeard;
+                targetNodeId = nodeId;
+            }
+        }
+    }
+
+    if (!candidateFound) {
+        return false;
+    }
+
+    string idStr = idString(targetNodeId);
+    string shortName = lookupShortName(targetNodeId);
+
+    if (purgeNode(targetNodeId)) {
+        ::printf("Purged node '%s' (%s).\n", idStr.c_str(), shortName.c_str());
+        return true;
+    }
+
+    return false;
+}
+
 bool SimpleClient::setTime(uint32_t seconds, uint32_t dest)
 {
     if (dest == 0) {

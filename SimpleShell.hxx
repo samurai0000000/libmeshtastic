@@ -14,6 +14,8 @@
 
 using namespace std;
 
+#define HOUSEKEEPING_INTERVAL 10
+
 class SimpleShell {
 
 public:
@@ -81,7 +83,10 @@ protected:
     virtual int purge(int argc, char **argv);
     virtual int unknown_command(int argc, char **argv);
 
+    virtual void houseKeeping(void);
+
     time_t _since;
+    time_t _lastHouseKeeping;
 
     vector<string> _help_list;
 

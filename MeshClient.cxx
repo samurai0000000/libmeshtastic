@@ -216,6 +216,17 @@ bool MeshClient::purgeNode(const string &shortName)
     return result;
 }
 
+bool MeshClient::purgeOldNodes(void)
+{
+    bool result = false;
+
+    _mutex.lock();
+    result = SimpleClient::purgeOldNodes();
+    _mutex.unlock();
+
+    return result;
+}
+
 unsigned int MeshClient::hopsAway(uint32_t node_num) const
 {
     uint8_t hops = 0xffU;
