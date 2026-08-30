@@ -10,8 +10,11 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <libmeshtastic.h>
+
+class BaseNvm;
 
 #if !defined(_GLIBCXX_HAS_GTHREADS) && (!defined(_LIBCPP_VERSION) || defined(_LIBCPP_HAS_NO_THREADS))
 
@@ -179,6 +182,21 @@ public:
     bool purgeNode(uint32_t nodeId);
     bool purgeNode(const string &shortName);
     virtual bool purgeOldNodes(void);
+    virtual void houseKeeping(void);
+    virtual void hourlyTask(void);
+    virtual void setupAgent(void);
+
+    virtual void setNvm(shared_ptr<BaseNvm> nvm);
+    inline shared_ptr<BaseNvm> nvm(void) const {
+        return _nvm;
+    }
+
+    inline int getRobotChannel(void) const {
+        if (_robotChannel < 0) {
+            const_cast<SimpleClient *>(this)->setupAgent();
+        }
+        return _robotChannel;
+    }
 
     bool setTime(uint32_t seconds = 0, uint32_t dest = 0);
     bool setTimezone(const string &tzdef, uint32_t dest = 0);
@@ -351,6 +369,10 @@ protected:
     map<uint32_t, meshtastic_LocalStats> _localStats;
     map<uint32_t, meshtastic_HealthMetrics> _healthMetrics;
     map<uint32_t, meshtastic_HostMetrics> _hostMetrics;
+
+    shared_ptr<BaseNvm> _nvm;
+    int _robotChannel;
+    time_t _lastHourlyTask;
 
 public:
 

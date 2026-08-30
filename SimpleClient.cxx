@@ -7,7 +7,9 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
 #include <sys/time.h>
+#include <BaseNvm.hxx>
 #include <SimpleClient.hxx>
 
 SimpleClient::SimpleClient()
@@ -22,6 +24,9 @@ SimpleClient::SimpleClient()
     bzero(&_myNodeInfo, sizeof(_myNodeInfo));
     bzero(&_loraConfig, sizeof(_loraConfig));
     bzero(&_deviceConfig, sizeof(_deviceConfig));
+    _nvm = NULL;
+    _robotChannel = -1;
+    _lastHourlyTask = 0;
     resetMeshStats();
 }
 
@@ -48,6 +53,8 @@ void SimpleClient::clear(void)
     _healthMetrics.clear();
     _hostMetrics.clear();
     _firmwareVersion.clear();
+    _robotChannel = -1;
+    _lastHourlyTask = 0;
 }
 
 uint32_t SimpleClient::whoami(void) const
@@ -899,12 +906,24 @@ void SimpleClient::gotChannel(const meshtastic_Channel &channel)
     uint8_t index = channel.index;
 
     _channels[index] = channel;
+    setupAgent();
 }
 
 void SimpleClient::gotConfigCompleteId(uint32_t id)
 {
     (void)(id);
     _isConnected = true;
+    setupAgent();
+
+    int robotChan = getRobotChannel();
+    if (robotChan >= 0) {
+        string announcement = lookupLongName(whoami(), true);
+        if (announcement.empty()) {
+            announcement = whoamiString();
+        }
+        announcement += " is up";
+        textMessage(0xffffffffU, (uint8_t) robotChan, announcement);
+    }
 }
 
 void SimpleClient::gotRebooted(bool rebooted)
@@ -1085,6 +1104,182 @@ uint32_t SimpleClient::meshDeviceLastReceivedSecondsAgo(void) const
     }
 
     return (uint32_t) (now - _mtc.last_packet_ts);
+}
+
+
+
+void SimpleClient::setNvm(shared_ptr<BaseNvm> nvm)
+{
+    _nvm = nvm;
+    setupAgent();
+}
+
+static bool nvm_name_match(const char *authName, size_t authMaxLen, const string &chanName)
+{
+    size_t nlen = strnlen(authName, authMaxLen);
+    if (chanName.size() != nlen) {
+        return false;
+    }
+    return strncasecmp(authName, chanName.c_str(), nlen) == 0;
+}
+
+static bool is_in_authchan(const vector<struct nvm_authchan_entry> &authchans,
+                           const string &chanName)
+{
+    if (chanName.empty()) {
+        return false;
+    }
+    for (size_t i = 0; i < authchans.size(); i++) {
+        if (nvm_name_match(authchans[i].name, sizeof(authchans[i].name), chanName)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool has_valid_key(const meshtastic_Channel &chan)
+{
+    if (!chan.has_settings) {
+        return false;
+    }
+    if (chan.settings.psk.size == 0) {
+        return false;
+    }
+    if (chan.settings.psk.size == 1 && chan.settings.psk.bytes[0] == 0) {
+        return false;
+    }
+    return true;
+}
+
+void SimpleClient::setupAgent(void)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    _robotChannel = -1;
+
+    if (_nvm == NULL) {
+        return;
+    }
+
+    const vector<struct nvm_authchan_entry> &authchans = _nvm->nvmAuthchans();
+    if (authchans.empty()) {
+        return;
+    }
+
+    static const char *keywords[] = {
+        "home",
+        "robot",
+        "automation",
+        "assistant",
+    };
+
+    for (size_t k = 0; k < sizeof(keywords) / sizeof(keywords[0]); k++) {
+        const char *kw = keywords[k];
+        for (map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.begin();
+             it != _channels.end(); it++) {
+            const meshtastic_Channel &chan = it->second;
+            if (chan.role == meshtastic_Channel_Role_DISABLED || !has_valid_key(chan)) {
+                continue;
+            }
+            string chanName = getChannelName(it->first);
+            if (chanName.empty()) {
+                chanName = chan.settings.name;
+            }
+            if (!is_in_authchan(authchans, chanName) &&
+                !is_in_authchan(authchans, chan.settings.name)) {
+                continue;
+            }
+
+            string chanNameLower = chanName;
+            string kwStr = kw;
+            for (size_t i = 0; i < chanNameLower.size(); i++) {
+                chanNameLower[i] = tolower((unsigned char) chanNameLower[i]);
+            }
+            for (size_t i = 0; i < kwStr.size(); i++) {
+                kwStr[i] = tolower((unsigned char) kwStr[i]);
+            }
+            if (chanNameLower.find(kwStr) != string::npos) {
+                _robotChannel = it->first;
+                return;
+            }
+        }
+    }
+
+    for (size_t a = 0; a < authchans.size(); a++) {
+        for (map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.begin();
+             it != _channels.end(); it++) {
+            const meshtastic_Channel &chan = it->second;
+            if (chan.role == meshtastic_Channel_Role_DISABLED || !has_valid_key(chan)) {
+                continue;
+            }
+            string chanName = getChannelName(it->first);
+            if (chanName.empty()) {
+                chanName = chan.settings.name;
+            }
+            if (nvm_name_match(authchans[a].name, sizeof(authchans[a].name), chanName) ||
+                nvm_name_match(authchans[a].name, sizeof(authchans[a].name), chan.settings.name)) {
+                _robotChannel = it->first;
+                return;
+            }
+        }
+    }
+}
+
+void SimpleClient::houseKeeping(void)
+{
+    purgeOldNodes();
+
+    time_t now = time(NULL);
+    if (_lastHourlyTask == 0) {
+        _lastHourlyTask = now;
+    } else if (now < _lastHourlyTask) {
+        _lastHourlyTask = now;
+    } else if ((now - _lastHourlyTask) >= 3600) {
+        hourlyTask();
+        _lastHourlyTask = now;
+    }
+}
+
+void SimpleClient::hourlyTask(void)
+{
+    if (_robotChannel < 0 || !_isConnected) {
+        return;
+    }
+
+    stringstream ss;
+    ss << fixed << setprecision(2);
+    ss << "status";
+
+    map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev =
+        _deviceMetrics.find(whoami());
+    if (dev != _deviceMetrics.end()) {
+        if (dev->second.has_channel_utilization) {
+            ss << " ch_util=" << dev->second.channel_utilization << "%";
+        }
+        if (dev->second.has_air_util_tx) {
+            ss << " air_tx=" << dev->second.air_util_tx << "%";
+        }
+    }
+
+    map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env =
+        _environmentMetrics.find(whoami());
+    if (env != _environmentMetrics.end()) {
+        if (env->second.has_temperature) {
+            ss << " temp=" << env->second.temperature << "C";
+        }
+        if (env->second.has_relative_humidity) {
+            ss << " rh=" << env->second.relative_humidity << "%";
+        }
+        if (env->second.has_barometric_pressure) {
+            ss << " press=" << env->second.barometric_pressure << "hPa";
+        }
+    }
+
+    ss << " bytes=" << meshDeviceBytesReceived() << "/" << meshDeviceBytesSent();
+    ss << " pkts=" << meshDevicePacketsReceived() << "/" << meshDevicePacketsSent();
+    ss << " last=" << meshDeviceLastReceivedSecondsAgo() << "s";
+
+    textMessage(0xffffffffU, (uint8_t) _robotChannel, ss.str());
 }
 
 /*

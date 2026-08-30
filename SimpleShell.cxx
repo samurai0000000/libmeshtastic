@@ -133,7 +133,7 @@ int SimpleShell::process(void)
 void SimpleShell::houseKeeping(void)
 {
     if (_client) {
-        _client->purgeOldNodes();
+        _client->houseKeeping();
     }
 }
 
@@ -423,6 +423,16 @@ int SimpleShell::status(int argc, char **argv)
             this->printf("chan#%u: %s\n",
                          (unsigned int) it->second.index,
                          it->second.settings.name);
+        }
+    }
+
+    {
+        int robotChan = _client->getRobotChannel();
+        if (robotChan < 0) {
+            this->printf("RobotChan: undefined!\n");
+        } else {
+            this->printf("RobotChan: %s\n",
+                         _client->getChannelName((uint8_t) robotChan).c_str());
         }
     }
 
