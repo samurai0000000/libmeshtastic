@@ -25,6 +25,29 @@ SimpleClient::SimpleClient()
     bzero(&_myNodeInfo, sizeof(_myNodeInfo));
     bzero(&_loraConfig, sizeof(_loraConfig));
     bzero(&_deviceConfig, sizeof(_deviceConfig));
+    bzero(&_positionConfig, sizeof(_positionConfig));
+    bzero(&_powerConfig, sizeof(_powerConfig));
+    bzero(&_networkConfig, sizeof(_networkConfig));
+    bzero(&_displayConfig, sizeof(_displayConfig));
+    bzero(&_bluetoothConfig, sizeof(_bluetoothConfig));
+    bzero(&_securityConfig, sizeof(_securityConfig));
+    bzero(&_sessionkeyConfig, sizeof(_sessionkeyConfig));
+    bzero(&_queueStatus, sizeof(_queueStatus));
+    bzero(&_deviceMetadata, sizeof(_deviceMetadata));
+    bzero(&_deviceUIConfig, sizeof(_deviceUIConfig));
+    bzero(&_modMQTT, sizeof(_modMQTT));
+    bzero(&_modSerial, sizeof(_modSerial));
+    bzero(&_modExternalNotification, sizeof(_modExternalNotification));
+    bzero(&_modStoreForward, sizeof(_modStoreForward));
+    bzero(&_modRangeTest, sizeof(_modRangeTest));
+    bzero(&_modTelemetry, sizeof(_modTelemetry));
+    bzero(&_modCannedMessage, sizeof(_modCannedMessage));
+    bzero(&_modAudio, sizeof(_modAudio));
+    bzero(&_modRemoteHardware, sizeof(_modRemoteHardware));
+    bzero(&_modNeighborInfo, sizeof(_modNeighborInfo));
+    bzero(&_modAmbientLighting, sizeof(_modAmbientLighting));
+    bzero(&_modDetectionSensor, sizeof(_modDetectionSensor));
+    bzero(&_modPaxcounter, sizeof(_modPaxcounter));
     _nvm = NULL;
     _robotChannel = -1;
     _lastHourlyTask = 0;
@@ -44,6 +67,30 @@ void SimpleClient::clear(void)
     bzero(&_myNodeInfo, sizeof(_myNodeInfo));
     bzero(&_loraConfig, sizeof(_loraConfig));
     bzero(&_deviceConfig, sizeof(_deviceConfig));
+    bzero(&_positionConfig, sizeof(_positionConfig));
+    bzero(&_powerConfig, sizeof(_powerConfig));
+    bzero(&_networkConfig, sizeof(_networkConfig));
+    bzero(&_displayConfig, sizeof(_displayConfig));
+    bzero(&_bluetoothConfig, sizeof(_bluetoothConfig));
+    bzero(&_securityConfig, sizeof(_securityConfig));
+    bzero(&_sessionkeyConfig, sizeof(_sessionkeyConfig));
+    bzero(&_queueStatus, sizeof(_queueStatus));
+    bzero(&_deviceMetadata, sizeof(_deviceMetadata));
+    bzero(&_deviceUIConfig, sizeof(_deviceUIConfig));
+    _fileInfos.clear();
+    bzero(&_modMQTT, sizeof(_modMQTT));
+    bzero(&_modSerial, sizeof(_modSerial));
+    bzero(&_modExternalNotification, sizeof(_modExternalNotification));
+    bzero(&_modStoreForward, sizeof(_modStoreForward));
+    bzero(&_modRangeTest, sizeof(_modRangeTest));
+    bzero(&_modTelemetry, sizeof(_modTelemetry));
+    bzero(&_modCannedMessage, sizeof(_modCannedMessage));
+    bzero(&_modAudio, sizeof(_modAudio));
+    bzero(&_modRemoteHardware, sizeof(_modRemoteHardware));
+    bzero(&_modNeighborInfo, sizeof(_modNeighborInfo));
+    bzero(&_modAmbientLighting, sizeof(_modAmbientLighting));
+    bzero(&_modDetectionSensor, sizeof(_modDetectionSensor));
+    bzero(&_modPaxcounter, sizeof(_modPaxcounter));
     _channels.clear();
     _positions.clear();
     _deviceMetrics.clear();
@@ -280,6 +327,29 @@ bool SimpleClient::isChannelValid(uint8_t channel) const
     return true;
 }
 
+unsigned int SimpleClient::hopsAway(uint32_t node_num) const
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+    uint8_t hops = 0xffU;
+    map<uint32_t, meshtastic_NodeInfo>::const_iterator it;
+
+    it = _nodeInfos.find(node_num);
+    if ((it != _nodeInfos.end()) && it->second.has_hops_away) {
+        hops = it->second.hops_away;
+    }
+
+    return (unsigned int) hops;
+}
+
+unsigned int SimpleClient::hopsAway(const meshtastic_MeshPacket &packet) const
+{
+    if (packet.hop_start >= packet.hop_limit) {
+        return (unsigned int)(packet.hop_start - packet.hop_limit);
+    }
+
+    return hopsAway(packet.from);
+}
+
 void SimpleClient::mtEvent(struct mt_client *mtc,
                            const void *packet, size_t size,
                            const meshtastic_FromRadio *fromRadio)
@@ -303,6 +373,9 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
     case meshtastic_FromRadio_config_tag :
         sc->gotConfig(fromRadio->config);
         break;
+    case meshtastic_FromRadio_moduleConfig_tag:
+        sc->gotModuleConfig(fromRadio->moduleConfig);
+        break;
     case meshtastic_FromRadio_channel_tag:
         sc->gotChannel(fromRadio->channel);
         break;
@@ -312,8 +385,20 @@ void SimpleClient::mtEvent(struct mt_client *mtc,
     case meshtastic_FromRadio_rebooted_tag:
         sc->gotRebooted(fromRadio->rebooted);
         break;
+    case meshtastic_FromRadio_queueStatus_tag:
+        sc->gotQueueStatus(fromRadio->queueStatus);
+        break;
     case meshtastic_FromRadio_metadata_tag:
         sc->gotDeviceMetadata(fromRadio->metadata);
+        break;
+    case meshtastic_FromRadio_fileInfo_tag:
+        sc->gotFileInfo(fromRadio->fileInfo);
+        break;
+    case meshtastic_FromRadio_deviceuiConfig_tag:
+        sc->gotDeviceUIConfig(fromRadio->deviceuiConfig);
+        break;
+    case meshtastic_FromRadio_mqttClientProxyMessage_tag:
+        sc->gotMqttClientProxyMessage(fromRadio->mqttClientProxyMessage);
         break;
     default:
         break;
@@ -727,6 +812,30 @@ void SimpleClient::gotConfig(const meshtastic_Config &config)
     case meshtastic_Config_device_tag:
         gotDeviceConfig(config.payload_variant.device);
         break;
+    case meshtastic_Config_position_tag:
+        gotPositionConfig(config.payload_variant.position);
+        break;
+    case meshtastic_Config_power_tag:
+        gotPowerConfig(config.payload_variant.power);
+        break;
+    case meshtastic_Config_network_tag:
+        gotNetworkConfig(config.payload_variant.network);
+        break;
+    case meshtastic_Config_display_tag:
+        gotDisplayConfig(config.payload_variant.display);
+        break;
+    case meshtastic_Config_bluetooth_tag:
+        gotBluetoothConfig(config.payload_variant.bluetooth);
+        break;
+    case meshtastic_Config_security_tag:
+        gotSecurityConfig(config.payload_variant.security);
+        break;
+    case meshtastic_Config_sessionkey_tag:
+        gotSessionkeyConfig(config.payload_variant.sessionkey);
+        break;
+    case meshtastic_Config_device_ui_tag:
+        gotDeviceUIConfig(config.payload_variant.device_ui);
+        break;
     default:
         break;
     }
@@ -744,6 +853,153 @@ void SimpleClient::gotDeviceConfig(const meshtastic_Config_DeviceConfig &c)
         setenv("TZ", c.tzdef, 1);
         tzset();
     }
+}
+
+void SimpleClient::gotPositionConfig(const meshtastic_Config_PositionConfig &c)
+{
+    _positionConfig = c;
+}
+
+void SimpleClient::gotPowerConfig(const meshtastic_Config_PowerConfig &c)
+{
+    _powerConfig = c;
+}
+
+void SimpleClient::gotNetworkConfig(const meshtastic_Config_NetworkConfig &c)
+{
+    _networkConfig = c;
+}
+
+void SimpleClient::gotDisplayConfig(const meshtastic_Config_DisplayConfig &c)
+{
+    _displayConfig = c;
+}
+
+void SimpleClient::gotBluetoothConfig(const meshtastic_Config_BluetoothConfig &c)
+{
+    _bluetoothConfig = c;
+}
+
+void SimpleClient::gotSecurityConfig(const meshtastic_Config_SecurityConfig &c)
+{
+    _securityConfig = c;
+}
+
+void SimpleClient::gotSessionkeyConfig(const meshtastic_Config_SessionkeyConfig &c)
+{
+    _sessionkeyConfig = c;
+}
+
+void SimpleClient::gotModuleConfig(const meshtastic_ModuleConfig &moduleConfig)
+{
+    switch (moduleConfig.which_payload_variant) {
+    case meshtastic_ModuleConfig_mqtt_tag:
+        gotModuleConfigMQTT(moduleConfig.payload_variant.mqtt);
+        break;
+    case meshtastic_ModuleConfig_serial_tag:
+        gotModuleConfigSerial(moduleConfig.payload_variant.serial);
+        break;
+    case meshtastic_ModuleConfig_external_notification_tag:
+        gotModuleConfigExternalNotification(moduleConfig.payload_variant.external_notification);
+        break;
+    case meshtastic_ModuleConfig_store_forward_tag:
+        gotModuleConfigStoreForward(moduleConfig.payload_variant.store_forward);
+        break;
+    case meshtastic_ModuleConfig_range_test_tag:
+        gotModuleConfigRangeTest(moduleConfig.payload_variant.range_test);
+        break;
+    case meshtastic_ModuleConfig_telemetry_tag:
+        gotModuleConfigTelemetry(moduleConfig.payload_variant.telemetry);
+        break;
+    case meshtastic_ModuleConfig_canned_message_tag:
+        gotModuleConfigCannedMessage(moduleConfig.payload_variant.canned_message);
+        break;
+    case meshtastic_ModuleConfig_audio_tag:
+        gotModuleConfigAudio(moduleConfig.payload_variant.audio);
+        break;
+    case meshtastic_ModuleConfig_remote_hardware_tag:
+        gotModuleConfigRemoteHardware(moduleConfig.payload_variant.remote_hardware);
+        break;
+    case meshtastic_ModuleConfig_neighbor_info_tag:
+        gotModuleConfigNeighborInfo(moduleConfig.payload_variant.neighbor_info);
+        break;
+    case meshtastic_ModuleConfig_ambient_lighting_tag:
+        gotModuleConfigAmbientLighting(moduleConfig.payload_variant.ambient_lighting);
+        break;
+    case meshtastic_ModuleConfig_detection_sensor_tag:
+        gotModuleConfigDetectionSensor(moduleConfig.payload_variant.detection_sensor);
+        break;
+    case meshtastic_ModuleConfig_paxcounter_tag:
+        gotModuleConfigPaxcounter(moduleConfig.payload_variant.paxcounter);
+        break;
+    default:
+        break;
+    }
+}
+
+void SimpleClient::gotModuleConfigMQTT(const meshtastic_ModuleConfig_MQTTConfig &c)
+{
+    _modMQTT = c;
+}
+
+void SimpleClient::gotModuleConfigSerial(const meshtastic_ModuleConfig_SerialConfig &c)
+{
+    _modSerial = c;
+}
+
+void SimpleClient::gotModuleConfigExternalNotification(const meshtastic_ModuleConfig_ExternalNotificationConfig &c)
+{
+    _modExternalNotification = c;
+}
+
+void SimpleClient::gotModuleConfigStoreForward(const meshtastic_ModuleConfig_StoreForwardConfig &c)
+{
+    _modStoreForward = c;
+}
+
+void SimpleClient::gotModuleConfigRangeTest(const meshtastic_ModuleConfig_RangeTestConfig &c)
+{
+    _modRangeTest = c;
+}
+
+void SimpleClient::gotModuleConfigTelemetry(const meshtastic_ModuleConfig_TelemetryConfig &c)
+{
+    _modTelemetry = c;
+}
+
+void SimpleClient::gotModuleConfigCannedMessage(const meshtastic_ModuleConfig_CannedMessageConfig &c)
+{
+    _modCannedMessage = c;
+}
+
+void SimpleClient::gotModuleConfigAudio(const meshtastic_ModuleConfig_AudioConfig &c)
+{
+    _modAudio = c;
+}
+
+void SimpleClient::gotModuleConfigRemoteHardware(const meshtastic_ModuleConfig_RemoteHardwareConfig &c)
+{
+    _modRemoteHardware = c;
+}
+
+void SimpleClient::gotModuleConfigNeighborInfo(const meshtastic_ModuleConfig_NeighborInfoConfig &c)
+{
+    _modNeighborInfo = c;
+}
+
+void SimpleClient::gotModuleConfigAmbientLighting(const meshtastic_ModuleConfig_AmbientLightingConfig &c)
+{
+    _modAmbientLighting = c;
+}
+
+void SimpleClient::gotModuleConfigDetectionSensor(const meshtastic_ModuleConfig_DetectionSensorConfig &c)
+{
+    _modDetectionSensor = c;
+}
+
+void SimpleClient::gotModuleConfigPaxcounter(const meshtastic_ModuleConfig_PaxcounterConfig &c)
+{
+    _modPaxcounter = c;
 }
 
 void SimpleClient::syncHostClock(uint32_t epoch_seconds)
@@ -985,7 +1241,30 @@ void SimpleClient::gotAdminMessage(const meshtastic_MeshPacket &packet,
 
 void SimpleClient::gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata)
 {
+    _deviceMetadata = deviceMetadata;
     _firmwareVersion = deviceMetadata.firmware_version;
+}
+
+void SimpleClient::gotQueueStatus(const meshtastic_QueueStatus &queueStatus)
+{
+    _queueStatus = queueStatus;
+}
+
+void SimpleClient::gotFileInfo(const meshtastic_FileInfo &fileInfo)
+{
+    if (fileInfo.file_name[0] != '\0') {
+        _fileInfos[string(fileInfo.file_name)] = fileInfo;
+    }
+}
+
+void SimpleClient::gotDeviceUIConfig(const meshtastic_DeviceUIConfig &deviceUIConfig)
+{
+    _deviceUIConfig = deviceUIConfig;
+}
+
+void SimpleClient::gotMqttClientProxyMessage(const meshtastic_MqttClientProxyMessage &m)
+{
+    (void)(m);
 }
 
 void SimpleClient::gotTelemetry(const meshtastic_MeshPacket &packet,

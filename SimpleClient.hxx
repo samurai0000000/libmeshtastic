@@ -132,6 +132,9 @@ public:
     uint8_t getChannel(const string &name) const;
     bool isChannelValid(uint8_t channel) const;
 
+    unsigned int hopsAway(uint32_t node_num) const;
+    unsigned int hopsAway(const meshtastic_MeshPacket &packet) const;
+
     bool sendDisconnect(void);
     bool sendWantConfig(void);
     bool sendHeartbeat(void);
@@ -255,6 +258,126 @@ public:
         return _loraConfig;
     }
 
+    inline const meshtastic_Config_PositionConfig &positionConfig(void) const
+    {
+        return _positionConfig;
+    }
+
+    inline const meshtastic_Config_PowerConfig &powerConfig(void) const
+    {
+        return _powerConfig;
+    }
+
+    inline const meshtastic_Config_NetworkConfig &networkConfig(void) const
+    {
+        return _networkConfig;
+    }
+
+    inline const meshtastic_Config_DisplayConfig &displayConfig(void) const
+    {
+        return _displayConfig;
+    }
+
+    inline const meshtastic_Config_BluetoothConfig &bluetoothConfig(void) const
+    {
+        return _bluetoothConfig;
+    }
+
+    inline const meshtastic_Config_SecurityConfig &securityConfig(void) const
+    {
+        return _securityConfig;
+    }
+
+    inline const meshtastic_Config_SessionkeyConfig &sessionkeyConfig(void) const
+    {
+        return _sessionkeyConfig;
+    }
+
+    inline const meshtastic_QueueStatus &queueStatus(void) const
+    {
+        return _queueStatus;
+    }
+
+    inline const meshtastic_DeviceMetadata &deviceMetadata(void) const
+    {
+        return _deviceMetadata;
+    }
+
+    inline const meshtastic_DeviceUIConfig &deviceUIConfig(void) const
+    {
+        return _deviceUIConfig;
+    }
+
+    inline const map<string, meshtastic_FileInfo> &fileInfos(void) const
+    {
+        return _fileInfos;
+    }
+
+    inline const meshtastic_ModuleConfig_MQTTConfig &modMQTT(void) const
+    {
+        return _modMQTT;
+    }
+
+    inline const meshtastic_ModuleConfig_SerialConfig &modSerial(void) const
+    {
+        return _modSerial;
+    }
+
+    inline const meshtastic_ModuleConfig_ExternalNotificationConfig &modExternalNotification(void) const
+    {
+        return _modExternalNotification;
+    }
+
+    inline const meshtastic_ModuleConfig_StoreForwardConfig &modStoreForward(void) const
+    {
+        return _modStoreForward;
+    }
+
+    inline const meshtastic_ModuleConfig_RangeTestConfig &modRangeTest(void) const
+    {
+        return _modRangeTest;
+    }
+
+    inline const meshtastic_ModuleConfig_TelemetryConfig &modTelemetry(void) const
+    {
+        return _modTelemetry;
+    }
+
+    inline const meshtastic_ModuleConfig_CannedMessageConfig &modCannedMessage(void) const
+    {
+        return _modCannedMessage;
+    }
+
+    inline const meshtastic_ModuleConfig_AudioConfig &modAudio(void) const
+    {
+        return _modAudio;
+    }
+
+    inline const meshtastic_ModuleConfig_RemoteHardwareConfig &modRemoteHardware(void) const
+    {
+        return _modRemoteHardware;
+    }
+
+    inline const meshtastic_ModuleConfig_NeighborInfoConfig &modNeighborInfo(void) const
+    {
+        return _modNeighborInfo;
+    }
+
+    inline const meshtastic_ModuleConfig_AmbientLightingConfig &modAmbientLighting(void) const
+    {
+        return _modAmbientLighting;
+    }
+
+    inline const meshtastic_ModuleConfig_DetectionSensorConfig &modDetectionSensor(void) const
+    {
+        return _modDetectionSensor;
+    }
+
+    inline const meshtastic_ModuleConfig_PaxcounterConfig &modPaxcounter(void) const
+    {
+        return _modPaxcounter;
+    }
+
     inline const map<uint8_t, meshtastic_Channel> &channels(void) const
     {
         return _channels;
@@ -312,10 +435,35 @@ protected:
     virtual void gotConfig(const meshtastic_Config &config);
     virtual void gotLoraConfig(const meshtastic_Config_LoRaConfig &c);
     virtual void gotDeviceConfig(const meshtastic_Config_DeviceConfig &c);
+    virtual void gotPositionConfig(const meshtastic_Config_PositionConfig &c);
+    virtual void gotPowerConfig(const meshtastic_Config_PowerConfig &c);
+    virtual void gotNetworkConfig(const meshtastic_Config_NetworkConfig &c);
+    virtual void gotDisplayConfig(const meshtastic_Config_DisplayConfig &c);
+    virtual void gotBluetoothConfig(const meshtastic_Config_BluetoothConfig &c);
+    virtual void gotSecurityConfig(const meshtastic_Config_SecurityConfig &c);
+    virtual void gotSessionkeyConfig(const meshtastic_Config_SessionkeyConfig &c);
+    virtual void gotModuleConfig(const meshtastic_ModuleConfig &moduleConfig);
+    virtual void gotModuleConfigMQTT(const meshtastic_ModuleConfig_MQTTConfig &c);
+    virtual void gotModuleConfigSerial(const meshtastic_ModuleConfig_SerialConfig &c);
+    virtual void gotModuleConfigExternalNotification(const meshtastic_ModuleConfig_ExternalNotificationConfig &c);
+    virtual void gotModuleConfigStoreForward(const meshtastic_ModuleConfig_StoreForwardConfig &c);
+    virtual void gotModuleConfigRangeTest(const meshtastic_ModuleConfig_RangeTestConfig &c);
+    virtual void gotModuleConfigTelemetry(const meshtastic_ModuleConfig_TelemetryConfig &c);
+    virtual void gotModuleConfigCannedMessage(const meshtastic_ModuleConfig_CannedMessageConfig &c);
+    virtual void gotModuleConfigAudio(const meshtastic_ModuleConfig_AudioConfig &c);
+    virtual void gotModuleConfigRemoteHardware(const meshtastic_ModuleConfig_RemoteHardwareConfig &c);
+    virtual void gotModuleConfigNeighborInfo(const meshtastic_ModuleConfig_NeighborInfoConfig &c);
+    virtual void gotModuleConfigAmbientLighting(const meshtastic_ModuleConfig_AmbientLightingConfig &c);
+    virtual void gotModuleConfigDetectionSensor(const meshtastic_ModuleConfig_DetectionSensorConfig &c);
+    virtual void gotModuleConfigPaxcounter(const meshtastic_ModuleConfig_PaxcounterConfig &c);
     virtual void gotChannel(const meshtastic_Channel &channel);
     virtual void gotConfigCompleteId(uint32_t id);
     virtual void gotRebooted(bool rebooted);
+    virtual void gotQueueStatus(const meshtastic_QueueStatus &queueStatus);
     virtual void gotDeviceMetadata(const meshtastic_DeviceMetadata &deviceMetadata);
+    virtual void gotFileInfo(const meshtastic_FileInfo &fileInfo);
+    virtual void gotDeviceUIConfig(const meshtastic_DeviceUIConfig &deviceUIConfig);
+    virtual void gotMqttClientProxyMessage(const meshtastic_MqttClientProxyMessage &m);
     virtual void gotTextMessage(const meshtastic_MeshPacket &packet,
                                 const string &message);
     virtual void gotPosition(const meshtastic_MeshPacket &packet,
@@ -361,6 +509,30 @@ protected:
     map<uint32_t, meshtastic_NodeInfo> _nodeInfos;
     meshtastic_Config_LoRaConfig _loraConfig;
     meshtastic_Config_DeviceConfig _deviceConfig;
+    meshtastic_Config_PositionConfig _positionConfig;
+    meshtastic_Config_PowerConfig _powerConfig;
+    meshtastic_Config_NetworkConfig _networkConfig;
+    meshtastic_Config_DisplayConfig _displayConfig;
+    meshtastic_Config_BluetoothConfig _bluetoothConfig;
+    meshtastic_Config_SecurityConfig _securityConfig;
+    meshtastic_Config_SessionkeyConfig _sessionkeyConfig;
+    meshtastic_QueueStatus _queueStatus;
+    meshtastic_DeviceMetadata _deviceMetadata;
+    meshtastic_DeviceUIConfig _deviceUIConfig;
+    map<string, meshtastic_FileInfo> _fileInfos;
+    meshtastic_ModuleConfig_MQTTConfig _modMQTT;
+    meshtastic_ModuleConfig_SerialConfig _modSerial;
+    meshtastic_ModuleConfig_ExternalNotificationConfig _modExternalNotification;
+    meshtastic_ModuleConfig_StoreForwardConfig _modStoreForward;
+    meshtastic_ModuleConfig_RangeTestConfig _modRangeTest;
+    meshtastic_ModuleConfig_TelemetryConfig _modTelemetry;
+    meshtastic_ModuleConfig_CannedMessageConfig _modCannedMessage;
+    meshtastic_ModuleConfig_AudioConfig _modAudio;
+    meshtastic_ModuleConfig_RemoteHardwareConfig _modRemoteHardware;
+    meshtastic_ModuleConfig_NeighborInfoConfig _modNeighborInfo;
+    meshtastic_ModuleConfig_AmbientLightingConfig _modAmbientLighting;
+    meshtastic_ModuleConfig_DetectionSensorConfig _modDetectionSensor;
+    meshtastic_ModuleConfig_PaxcounterConfig _modPaxcounter;
     map<uint8_t, meshtastic_Channel> _channels;
     map<uint32_t, meshtastic_Position> _positions;
     map<uint32_t, meshtastic_DeviceMetrics> _deviceMetrics;
