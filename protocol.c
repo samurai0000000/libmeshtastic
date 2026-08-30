@@ -35,7 +35,7 @@ int mt_recv_packet(struct mt_client *mtc, uint8_t *packet, size_t size)
         goto done;
     }
 
-    if (packet == NULL) {
+    if (packet == NULL || size < sizeof(*header)) {
         errno = EINVAL;
         ret = -1;
         goto done;
@@ -349,6 +349,8 @@ int mt_admin_message_device_metadata_request(struct mt_client *mtc)
     to_radio.packet.which_payload_variant = meshtastic_MeshPacket_decoded_tag;
     to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.hop_start = 3;
+    to_radio.packet.hop_limit = 3;
     to_radio.packet.decoded.want_response = true;
 
     ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
@@ -399,6 +401,8 @@ int mt_admin_message_reboot(struct mt_client *mtc, uint32_t dest,
     to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.to = dest;
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.hop_start = 3;
+    to_radio.packet.hop_limit = 3;
 
     ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
                                      sizeof(to_radio.packet.decoded.payload.bytes));
@@ -441,6 +445,8 @@ int mt_admin_message_commit_edit_settings(struct mt_client *mtc, uint32_t dest)
     to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.to = dest;
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.hop_start = 3;
+    to_radio.packet.hop_limit = 3;
 
     ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
                                      sizeof(to_radio.packet.decoded.payload.bytes));
@@ -484,6 +490,8 @@ int mt_admin_message_remove_by_nodenum(struct mt_client *mtc, uint32_t dest,
     to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.to = dest;
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.hop_start = 3;
+    to_radio.packet.hop_limit = 3;
 
     ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
                                      sizeof(to_radio.packet.decoded.payload.bytes));
@@ -527,6 +535,8 @@ int mt_admin_message_set_time(struct mt_client *mtc, uint32_t dest,
     to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.to = dest;
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.hop_start = 3;
+    to_radio.packet.hop_limit = 3;
 
     ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
                                      sizeof(to_radio.packet.decoded.payload.bytes));
@@ -578,6 +588,8 @@ int mt_admin_message_set_tzdef(struct mt_client *mtc, uint32_t dest,
     to_radio.packet.id = mt_next_packet_id();
     to_radio.packet.to = dest;
     to_radio.packet.decoded.portnum = meshtastic_PortNum_ADMIN_APP;
+    to_radio.packet.hop_start = 3;
+    to_radio.packet.hop_limit = 3;
 
     ostream = pb_ostream_from_buffer(to_radio.packet.decoded.payload.bytes,
                                      sizeof(to_radio.packet.decoded.payload.bytes));

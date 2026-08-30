@@ -122,7 +122,7 @@ public:
     string whoamiString(void) const;
     string idString(uint32_t id) const;
     string lookupLongName(uint32_t id, bool noUnprintable = false) const;
-    string lookupShortName(uint32_t id, bool noUprintable = false) const;
+    string lookupShortName(uint32_t id, bool noUnprintable = false) const;
     string getDisplayName(uint32_t id, bool noUnprintable = false) const;
     uint32_t getId(const string &name) const;
     string getChannelName(uint8_t channel) const;
@@ -368,7 +368,10 @@ public:
     uint32_t meshDeviceBytesSent(void) const;
     uint32_t meshDevicePacketsReceived(void) const;
     uint32_t meshDevicePacketsSent(void) const;
-    uint32_t meshDeviceLastRecivedSecondsAgo(void) const;
+    uint32_t meshDeviceLastReceivedSecondsAgo(void) const;
+    inline uint32_t meshDeviceLastRecivedSecondsAgo(void) const {
+        return meshDeviceLastReceivedSecondsAgo();
+    }
 
     inline uint32_t dmRx(void) const {
         return _dmRx;
@@ -390,8 +393,12 @@ public:
         return _countWantConfigs;
     }
 
-    inline uint32_t countHearbeats(void) const {
+    inline uint32_t countHeartbeats(void) const {
         return _countHeartbeats;
+    }
+
+    inline uint32_t countHearbeats(void) const {
+        return countHeartbeats();
     }
 
     inline uint32_t countTextMessages(void) const {

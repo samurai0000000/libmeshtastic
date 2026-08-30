@@ -149,7 +149,6 @@ uint32_t SimpleClient::getId(const string &name) const
     lock_guard<recursive_mutex> lock(_mutex);
     uint32_t id = 0xffffffffU;
     uint32_t node_num = 0xffffffffU;
-    map<uint8_t, meshtastic_Channel>::const_iterator it;
 
     if ((name.size() > 0) && (name[0] == '!')) {
         try {
@@ -157,6 +156,10 @@ uint32_t SimpleClient::getId(const string &name) const
             node_num = static_cast<uint32_t>(std::stoul(hexstr, nullptr, 16));
         } catch (const invalid_argument &e) {
         } catch (const out_of_range &e) {
+        }
+
+        if (node_num != 0xffffffffU) {
+            return node_num;
         }
     }
 
@@ -354,6 +357,7 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
                              unsigned int hop_start, bool want_ack)
 {
     bool result = false;
+    lock_guard<recursive_mutex> lock(_mutex);
 
     if (hop_start == 0) {
         hop_start = _loraConfig.hop_limit;
@@ -436,6 +440,7 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
 
 bool SimpleClient::adminMessageReboot(unsigned int seconds)
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return (mt_admin_message_reboot(&_mtc, whoami(), seconds) == 0);
 }
 
@@ -543,17 +548,18 @@ bool SimpleClient::purgeNode(uint32_t nodeId)
     bool result = false;
     lock_guard<recursive_mutex> lock(_mutex);
 
-    _nodeInfos.erase(nodeId);
-    _positions.erase(nodeId);
-    _deviceMetrics.erase(nodeId);
-    _environmentMetrics.erase(nodeId);
-    _airQualityMetrics.erase(nodeId);
-    _powerMetrics.erase(nodeId);
-    _localStats.erase(nodeId);
-    _healthMetrics.erase(nodeId);
-    _hostMetrics.erase(nodeId);
-
     result = (mt_admin_message_remove_by_nodenum(&_mtc, whoami(), nodeId) == 0);
+    if (result) {
+        _nodeInfos.erase(nodeId);
+        _positions.erase(nodeId);
+        _deviceMetrics.erase(nodeId);
+        _environmentMetrics.erase(nodeId);
+        _airQualityMetrics.erase(nodeId);
+        _powerMetrics.erase(nodeId);
+        _localStats.erase(nodeId);
+        _healthMetrics.erase(nodeId);
+        _hostMetrics.erase(nodeId);
+    }
 
     return result;
 }
@@ -686,13 +692,18 @@ bool SimpleClient::setTimezone(const string &tzdef, uint32_t dest)
         dest = whoami();
     }
 
-    if (mt_admin_message_set_tzdef(&_mtc, dest, &_deviceConfig, tzdef.c_str()) != 0) {
+    const meshtastic_Config_DeviceConfig *config_template =
+        (dest == whoami()) ? &_deviceConfig : NULL;
+
+    if (mt_admin_message_set_tzdef(&_mtc, dest, config_template, tzdef.c_str()) != 0) {
         return false;
     }
 
     if (dest == whoami()) {
         strncpy(_deviceConfig.tzdef, tzdef.c_str(), sizeof(_deviceConfig.tzdef) - 1);
         _deviceConfig.tzdef[sizeof(_deviceConfig.tzdef) - 1] = '\0';
+        setenv("TZ", _deviceConfig.tzdef, 1);
+        tzset();
         commitEditSettings();
     }
 
@@ -734,7 +745,7 @@ void SimpleClient::syncHostClock(uint32_t epoch_seconds)
     }
 
     time_t now = time(NULL);
-    if ((now < 1700000000U) || (labs(now - (time_t) epoch_seconds) >= 60)) {
+    if ((now < 1700000000U) || ((time_t) epoch_seconds > now && ((time_t) epoch_seconds - now) >= 60)) {
         time_t delta = (time_t) epoch_seconds - now;
         struct timeval tv;
         tv.tv_sec = (time_t) epoch_seconds;
@@ -852,6 +863,19 @@ void SimpleClient::gotPacket(const meshtastic_MeshPacket &packet)
             }
         }
             break;
+        case meshtastic_PortNum_ADMIN_APP:
+        {
+            meshtastic_AdminMessage adminMessage;
+            bzero(&adminMessage, sizeof(adminMessage));
+            stream = pb_istream_from_buffer(packet.decoded.payload.bytes,
+                                            packet.decoded.payload.size);
+            ret = pb_decode(&stream, meshtastic_AdminMessage_fields,
+                            &adminMessage);
+            if (ret == 1) {
+                gotAdminMessage(packet, adminMessage);
+            }
+        }
+            break;
         default:
             break;
         }
@@ -866,11 +890,6 @@ void SimpleClient::gotMyNodeInfo(const meshtastic_MyNodeInfo &myNodeInfo)
 void SimpleClient::gotNodeInfo(const meshtastic_NodeInfo &nodeInfo)
 {
     uint32_t num = nodeInfo.num;
-
-    syncHostClock(nodeInfo.last_heard);
-    if (nodeInfo.has_position) {
-        syncHostClock(nodeInfo.position.time);
-    }
 
     _nodeInfos[num] = nodeInfo;
 }
@@ -911,27 +930,17 @@ void SimpleClient::gotTextMessage(const meshtastic_MeshPacket &packet,
 void SimpleClient::gotPosition(const meshtastic_MeshPacket &packet,
                                const meshtastic_Position &position)
 {
-    (void)(packet);
     syncHostClock(position.time);
     syncHostClock(position.timestamp);
+    _positions[packet.from] = position;
 }
 
 void SimpleClient::gotUser(const meshtastic_MeshPacket &packet,
                            const meshtastic_User &user)
 {
-    if (_nodeInfos.find(packet.from) == _nodeInfos.end()) {
-        meshtastic_NodeInfo nodeInfo;
-
-        bzero(&nodeInfo, sizeof(nodeInfo));
-        nodeInfo.num = packet.from;
-        nodeInfo.has_user = true;
-        nodeInfo.user = user;
-        _nodeInfos[packet.from] = nodeInfo;
-    } else {
-        _nodeInfos[packet.from].num = packet.from;
-        _nodeInfos[packet.from].has_user = true;
-        _nodeInfos[packet.from].user = user;
-    }
+    _nodeInfos[packet.from].num = packet.from;
+    _nodeInfos[packet.from].has_user = true;
+    _nodeInfos[packet.from].user = user;
 }
 
 void SimpleClient::gotRouting(const meshtastic_MeshPacket &packet,
@@ -1040,26 +1049,31 @@ void SimpleClient::gotTraceRoute(const meshtastic_MeshPacket &packet,
 
 uint32_t SimpleClient::meshDeviceBytesReceived(void) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return _mtc.bytes_rx;
 }
 
 uint32_t SimpleClient::meshDeviceBytesSent(void) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return _mtc.bytes_tx;
 }
 
 uint32_t SimpleClient::meshDevicePacketsReceived(void) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return _mtc.packets_rx;
 }
 
 uint32_t SimpleClient::meshDevicePacketsSent(void) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     return _mtc.packets_tx;
 }
 
-uint32_t SimpleClient::meshDeviceLastRecivedSecondsAgo(void) const
+uint32_t SimpleClient::meshDeviceLastReceivedSecondsAgo(void) const
 {
+    lock_guard<recursive_mutex> lock(_mutex);
     time_t now = mt_impl_now();
 
     if (_mtc.last_packet_ts == 0 || now < (time_t) _mtc.last_packet_ts) {
