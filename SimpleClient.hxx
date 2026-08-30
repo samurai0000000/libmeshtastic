@@ -355,6 +355,7 @@ protected:
 
     bool _isConnected;
     bool _isClockSynced;
+    bool _bootAnnounced;
     time_t _since;
     meshtastic_MyNodeInfo _myNodeInfo;
     map<uint32_t, meshtastic_NodeInfo> _nodeInfos;

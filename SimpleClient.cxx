@@ -20,6 +20,7 @@ SimpleClient::SimpleClient()
     _mtc.ctx = this;
     _isConnected = false;
     _isClockSynced = false;
+    _bootAnnounced = false;
     _since = time(NULL);
     bzero(&_myNodeInfo, sizeof(_myNodeInfo));
     bzero(&_loraConfig, sizeof(_loraConfig));
@@ -916,13 +917,15 @@ void SimpleClient::gotConfigCompleteId(uint32_t id)
     setupAgent();
 
     int robotChan = getRobotChannel();
-    if (robotChan >= 0) {
+    if (robotChan >= 0 && !_bootAnnounced) {
         string announcement = lookupLongName(whoami(), true);
         if (announcement.empty()) {
             announcement = whoamiString();
         }
         announcement += " is up";
-        textMessage(0xffffffffU, (uint8_t) robotChan, announcement);
+        if (textMessage(0xffffffffU, (uint8_t) robotChan, announcement)) {
+            _bootAnnounced = true;
+        }
     }
 }
 
@@ -1200,7 +1203,7 @@ void SimpleClient::setupAgent(void)
             }
             if (chanNameLower.find(kwStr) != string::npos) {
                 _robotChannel = it->first;
-                return;
+                goto resolved;
             }
         }
     }
@@ -1219,8 +1222,21 @@ void SimpleClient::setupAgent(void)
             if (nvm_name_match(authchans[a].name, sizeof(authchans[a].name), chanName) ||
                 nvm_name_match(authchans[a].name, sizeof(authchans[a].name), chan.settings.name)) {
                 _robotChannel = it->first;
-                return;
+                goto resolved;
             }
+        }
+    }
+
+resolved:
+
+    if (_robotChannel >= 0 && _isConnected && !_bootAnnounced) {
+        string announcement = lookupLongName(whoami(), true);
+        if (announcement.empty()) {
+            announcement = whoamiString();
+        }
+        announcement += " is up";
+        if (textMessage(0xffffffffU, (uint8_t) _robotChannel, announcement)) {
+            _bootAnnounced = true;
         }
     }
 }
@@ -1242,7 +1258,8 @@ void SimpleClient::houseKeeping(void)
 
 void SimpleClient::hourlyTask(void)
 {
-    if (_robotChannel < 0 || !_isConnected) {
+    int robotChan = getRobotChannel();
+    if (robotChan < 0 || !_isConnected) {
         return;
     }
 
@@ -1253,6 +1270,12 @@ void SimpleClient::hourlyTask(void)
     map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev =
         _deviceMetrics.find(whoami());
     if (dev != _deviceMetrics.end()) {
+        if (dev->second.has_battery_level && dev->second.battery_level > 0 && dev->second.battery_level <= 100) {
+            ss << " batt=" << dev->second.battery_level << "%";
+        }
+        if (dev->second.has_voltage && dev->second.voltage > 0.0f) {
+            ss << " volt=" << dev->second.voltage << "V";
+        }
         if (dev->second.has_channel_utilization) {
             ss << " ch_util=" << dev->second.channel_utilization << "%";
         }
@@ -1273,13 +1296,44 @@ void SimpleClient::hourlyTask(void)
         if (env->second.has_barometric_pressure) {
             ss << " press=" << env->second.barometric_pressure << "hPa";
         }
+        if (env->second.has_gas_resistance) {
+            ss << " gas=" << env->second.gas_resistance << "ohm";
+        }
+        if (env->second.has_iaq) {
+            ss << " iaq=" << env->second.iaq;
+        }
+        if (env->second.has_lux) {
+            ss << " lux=" << env->second.lux;
+        }
+    }
+
+    map<uint32_t, meshtastic_AirQualityMetrics>::const_iterator aq =
+        _airQualityMetrics.find(whoami());
+    if (aq != _airQualityMetrics.end()) {
+        if (aq->second.has_pm25_standard) {
+            ss << " pm25=" << aq->second.pm25_standard;
+        }
+        if (aq->second.has_pm10_standard) {
+            ss << " pm10=" << aq->second.pm10_standard;
+        }
+    }
+
+    map<uint32_t, meshtastic_PowerMetrics>::const_iterator pwr =
+        _powerMetrics.find(whoami());
+    if (pwr != _powerMetrics.end()) {
+        if (pwr->second.has_ch1_voltage) {
+            ss << " ch1_v=" << pwr->second.ch1_voltage << "V";
+        }
+        if (pwr->second.has_ch1_current) {
+            ss << " ch1_i=" << pwr->second.ch1_current << "mA";
+        }
     }
 
     ss << " bytes=" << meshDeviceBytesReceived() << "/" << meshDeviceBytesSent();
     ss << " pkts=" << meshDevicePacketsReceived() << "/" << meshDevicePacketsSent();
     ss << " last=" << meshDeviceLastReceivedSecondsAgo() << "s";
 
-    textMessage(0xffffffffU, (uint8_t) _robotChannel, ss.str());
+    textMessage(0xffffffffU, (uint8_t) robotChan, ss.str());
 }
 
 /*
