@@ -2207,77 +2207,24 @@ void SimpleClient::hourlyTask(void)
         return;
     }
 
-    stringstream ss;
-    ss << fixed << setprecision(2);
-    ss << "status:";
+    uint32_t upsec;
+    unsigned int days, hour, min, sec;
+    char buf[64];
 
-    map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev =
-        _deviceMetrics.find(whoami());
-    if (dev != _deviceMetrics.end()) {
-        if (dev->second.has_battery_level && dev->second.battery_level > 0 && dev->second.battery_level <= 100) {
-            ss << " batt=" << dev->second.battery_level << "%";
-        }
-        if (dev->second.has_voltage && dev->second.voltage > 0.0f) {
-            ss << " volt=" << dev->second.voltage << "V";
-        }
-        if (dev->second.has_channel_utilization) {
-            ss << " ch_util=" << dev->second.channel_utilization << "%";
-        }
-        if (dev->second.has_air_util_tx) {
-            ss << " air_tx=" << dev->second.air_util_tx << "%";
-        }
+    upsec = getUptime();
+    sec = upsec % 60;
+    min = (upsec / 60) % 60;
+    hour = (upsec / 3600) % 24;
+    days = (upsec) / 86400;
+    if (days == 0) {
+        snprintf(buf, sizeof(buf) - 1, "uptime: %.2u:%.2u:%.2u",
+                 hour, min, sec);
+    } else {
+        snprintf(buf, sizeof(buf) - 1, "uptime: %ud %.2u:%.2u:%.2u",
+                 days, hour, min, sec);
     }
 
-    map<uint32_t, meshtastic_EnvironmentMetrics>::const_iterator env =
-        _environmentMetrics.find(whoami());
-    if (env != _environmentMetrics.end()) {
-        if (env->second.has_temperature) {
-            ss << " temp=" << env->second.temperature << "C";
-        }
-        if (env->second.has_relative_humidity) {
-            ss << " rh=" << env->second.relative_humidity << "%";
-        }
-        if (env->second.has_barometric_pressure) {
-            ss << " press=" << env->second.barometric_pressure << "hPa";
-        }
-        if (env->second.has_gas_resistance) {
-            ss << " gas=" << env->second.gas_resistance << "ohm";
-        }
-        if (env->second.has_iaq) {
-            ss << " iaq=" << env->second.iaq;
-        }
-        if (env->second.has_lux) {
-            ss << " lux=" << env->second.lux;
-        }
-    }
-
-    map<uint32_t, meshtastic_AirQualityMetrics>::const_iterator aq =
-        _airQualityMetrics.find(whoami());
-    if (aq != _airQualityMetrics.end()) {
-        if (aq->second.has_pm25_standard) {
-            ss << " pm25=" << aq->second.pm25_standard;
-        }
-        if (aq->second.has_pm10_standard) {
-            ss << " pm10=" << aq->second.pm10_standard;
-        }
-    }
-
-    map<uint32_t, meshtastic_PowerMetrics>::const_iterator pwr =
-        _powerMetrics.find(whoami());
-    if (pwr != _powerMetrics.end()) {
-        if (pwr->second.has_ch1_voltage) {
-            ss << " ch1_v=" << pwr->second.ch1_voltage << "V";
-        }
-        if (pwr->second.has_ch1_current) {
-            ss << " ch1_i=" << pwr->second.ch1_current << "mA";
-        }
-    }
-
-    ss << " bytes=" << meshDeviceBytesReceived() << "/" << meshDeviceBytesSent();
-    ss << " pkts=" << meshDevicePacketsReceived() << "/" << meshDevicePacketsSent();
-    ss << " last=" << meshDeviceLastReceivedSecondsAgo() << "s";
-
-    textMessage(0xffffffffU, (uint8_t) robotChan, ss.str());
+    textMessage(0xffffffffU, (uint8_t) robotChan, buf);
 }
 
 /*

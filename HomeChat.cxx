@@ -738,10 +738,10 @@ string HomeChat::handleUptime(uint32_t node_num, string &message)
     hour = (upsec / 3600) % 24;
     days = (upsec) / 86400;
     if (days == 0) {
-        snprintf(buf, sizeof(buf) - 1, "Up-time: %.2u:%.2u:%.2u",
+        snprintf(buf, sizeof(buf) - 1, "uptime: %.2u:%.2u:%.2u",
                  hour, min, sec);
     } else {
-        snprintf(buf, sizeof(buf) - 1, "Up-time: %ud %.2u:%.2u:%.2u",
+        snprintf(buf, sizeof(buf) - 1, "uptime: %ud %.2u:%.2u:%.2u",
                  days, hour, min, sec);
     }
 
@@ -782,7 +782,7 @@ string HomeChat::handleZeroHops(uint32_t node_num, string &message)
     (void)(node_num);
     (void)(message);
 
-    reply = "my zero-hop neighbors:";
+    reply = "zero-hop-neighbors:";
     for (it = _client->nodeInfos().begin();
          it != _client->nodeInfos().end();
          it++) {
@@ -1207,22 +1207,17 @@ string HomeChat::handleEnv(uint32_t node_num, string &message)
 
     env = _client->environmentMetrics().find(_client->whoami());
     if (env != _client->environmentMetrics().end()) {
+        ss << "env:";
         if (env->second.has_temperature) {
-            ss << "temperature: ";
+            ss << " temp=";
             ss << setprecision(3) << env->second.temperature;
         }
         if (env->second.has_relative_humidity) {
-            if (ss.tellp() != 0) {
-                ss << endl;
-            }
-            ss << "relative_humidity: ";
+            ss << " rh=";
             ss << setprecision(3) << env->second.relative_humidity;
         }
         if (env->second.has_barometric_pressure) {
-            if (ss.tellp() != 0) {
-                ss << endl;
-            }
-            ss << "barometric_pressure: ";
+            ss << " bp=";
                 ss << setprecision(3) << env->second.barometric_pressure;
         }
     }
