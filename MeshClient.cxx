@@ -5,7 +5,7 @@
  */
 
 #include <stdio.h>
-#include <LibMeshtastic.hxx>
+#include <MeshClient.hxx>
 
 #define DEFAULT_HEARTBEAT_SECONDS 30
 

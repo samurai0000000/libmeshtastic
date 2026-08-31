@@ -90,6 +90,9 @@ extern int mt_text_message(struct mt_client *mtc,
                            uint32_t dest, uint8_t channel,
                            const char *message,
                            unsigned int hop_start, bool want_ack);
+extern int mt_send_admin_message(struct mt_client *mtc, uint32_t dest,
+                                 const meshtastic_AdminMessage *admin_message,
+                                 bool want_response);
 
 /* Group 1: Device Configuration (meshtastic_Config) */
 extern int mt_admin_message_get_config_request(struct mt_client *mtc,

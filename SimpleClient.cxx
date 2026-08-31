@@ -530,12 +530,6 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
     return result;
 }
 
-bool SimpleClient::adminMessageReboot(unsigned int seconds)
-{
-    lock_guard<recursive_mutex> lock(_mutex);
-    return (mt_admin_message_reboot(&_mtc, whoami(), seconds) == 0);
-}
-
 SimpleClient::NodeFilterRange::Iterator::Iterator(
     map<uint32_t, meshtastic_NodeInfo>::const_iterator it,
     map<uint32_t, meshtastic_NodeInfo>::const_iterator end,
@@ -627,12 +621,6 @@ SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::end(void)
 SimpleClient::NodeFilterRange SimpleClient::getLastHeardNodes(uint32_t seconds) const
 {
     return NodeFilterRange(_nodeInfos, seconds, time(NULL));
-}
-
-bool SimpleClient::commitEditSettings(void)
-{
-    lock_guard<recursive_mutex> lock(_mutex);
-    return (mt_admin_message_commit_edit_settings(&_mtc, whoami()) == 0);
 }
 
 bool SimpleClient::purgeNode(uint32_t nodeId)
@@ -762,21 +750,254 @@ bool SimpleClient::purgeOldNodes(void)
     return false;
 }
 
-bool SimpleClient::setTime(uint32_t seconds, uint32_t dest)
+void SimpleClient::syncHostClock(uint32_t epoch_seconds)
+{
+    if (epoch_seconds < 1700000000U) {
+        return;
+    }
+
+    time_t now = time(NULL);
+    if ((now < 1700000000U) || ((time_t) epoch_seconds > now && ((time_t) epoch_seconds - now) >= 60)) {
+        time_t delta = (time_t) epoch_seconds - now;
+        struct timeval tv;
+        tv.tv_sec = (time_t) epoch_seconds;
+        tv.tv_usec = 0;
+        settimeofday(&tv, NULL);
+        _since += delta;
+        _mtc.last_packet_ts = epoch_seconds;
+        _mtc.last_byte_ts = epoch_seconds;
+    }
+    if (_deviceConfig.tzdef[0] != '\0') {
+        setenv("TZ", _deviceConfig.tzdef, 1);
+        tzset();
+    }
+    _isClockSynced = true;
+}
+
+bool SimpleClient::adminSetUsePreset(bool use_preset, uint32_t dest)
 {
     lock_guard<recursive_mutex> lock(_mutex);
 
     if (dest == 0) {
         dest = whoami();
     }
-    if (seconds == 0) {
-        seconds = (uint32_t) time(NULL);
-    }
 
-    return (mt_admin_message_set_time(&_mtc, dest, seconds) == 0);
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.use_preset = use_preset;
+
+    return sendLoraConfig(dest, c);
 }
 
-bool SimpleClient::setTimezone(const string &tzdef, uint32_t dest)
+bool SimpleClient::adminSetModemPreset(meshtastic_Config_LoRaConfig_ModemPreset preset,
+                                  uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.modem_preset = preset;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::adminSetRegion(meshtastic_Config_LoRaConfig_RegionCode region,
+                             uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.region = region;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::adminSetHopLimit(uint32_t hop_limit, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.hop_limit = hop_limit;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::adminSetTxEnabled(bool tx_enabled, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.tx_enabled = tx_enabled;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::adminSetTxPower(int8_t tx_power, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.tx_power = tx_power;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::adminSetChannelNum(uint16_t channel_num, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.channel_num = channel_num;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::adminSetIgnoreMqtt(bool ignore_mqtt, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_LoRaConfig c;
+    if (dest == whoami()) {
+        c = _loraConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.ignore_mqtt = ignore_mqtt;
+
+    return sendLoraConfig(dest, c);
+}
+
+bool SimpleClient::sendLoraConfig(uint32_t dest, const meshtastic_Config_LoRaConfig &c)
+{
+    if (mt_admin_message_set_lora_config(&_mtc, dest, &c) != 0) {
+        return false;
+    }
+    if (dest == whoami()) {
+        _loraConfig = c;
+    }
+    return true;
+}
+
+bool SimpleClient::adminSetRole(meshtastic_Config_DeviceConfig_Role role, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_DeviceConfig c;
+    if (dest == whoami()) {
+        c = _deviceConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.role = role;
+
+    return sendDeviceConfig(dest, c);
+}
+
+bool SimpleClient::adminSetRebroadcastMode(meshtastic_Config_DeviceConfig_RebroadcastMode mode,
+                                      uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_DeviceConfig c;
+    if (dest == whoami()) {
+        c = _deviceConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.rebroadcast_mode = mode;
+
+    return sendDeviceConfig(dest, c);
+}
+
+bool SimpleClient::adminSetNodeInfoBroadcastSecs(uint32_t seconds, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_DeviceConfig c;
+    if (dest == whoami()) {
+        c = _deviceConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.node_info_broadcast_secs = seconds;
+
+    return sendDeviceConfig(dest, c);
+}
+
+bool SimpleClient::adminSetTimezone(const string &tzdef, uint32_t dest)
 {
     lock_guard<recursive_mutex> lock(_mutex);
 
@@ -796,10 +1017,477 @@ bool SimpleClient::setTimezone(const string &tzdef, uint32_t dest)
         _deviceConfig.tzdef[sizeof(_deviceConfig.tzdef) - 1] = '\0';
         setenv("TZ", _deviceConfig.tzdef, 1);
         tzset();
-        commitEditSettings();
     }
 
     return true;
+}
+
+bool SimpleClient::sendDeviceConfig(uint32_t dest, const meshtastic_Config_DeviceConfig &c)
+{
+    if (mt_admin_message_set_device_config(&_mtc, dest, &c) != 0) {
+        return false;
+    }
+    if (dest == whoami()) {
+        _deviceConfig = c;
+    }
+    return true;
+}
+
+bool SimpleClient::adminSetPositionBroadcastSecs(uint32_t seconds, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_PositionConfig c;
+    if (dest == whoami()) {
+        c = _positionConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.position_broadcast_secs = seconds;
+
+    return sendPositionConfig(dest, c);
+}
+
+bool SimpleClient::sendPositionConfig(uint32_t dest, const meshtastic_Config_PositionConfig &c)
+{
+    if (mt_admin_message_set_position_config(&_mtc, dest, &c) != 0) {
+        return false;
+    }
+    if (dest == whoami()) {
+        _positionConfig = c;
+    }
+    return true;
+}
+
+bool SimpleClient::adminSetPublicKey(const meshtastic_Config_SecurityConfig_public_key_t &key,
+                                uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_SecurityConfig c;
+    if (dest == whoami()) {
+        c = _securityConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.public_key = key;
+
+    return sendSecurityConfig(dest, c);
+}
+
+bool SimpleClient::adminSetPrivateKey(const meshtastic_Config_SecurityConfig_private_key_t &key,
+                                 uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_SecurityConfig c;
+    if (dest == whoami()) {
+        c = _securityConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.private_key = key;
+
+    return sendSecurityConfig(dest, c);
+}
+
+bool SimpleClient::adminSetAdminKey(uint8_t slot,
+                               const meshtastic_Config_SecurityConfig_admin_key_t &key,
+                               uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (slot > 2) {
+        return false;
+    }
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_SecurityConfig c;
+    if (dest == whoami()) {
+        c = _securityConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.admin_key[slot] = key;
+    if (key.size > 0) {
+        if (c.admin_key_count < (pb_size_t)(slot + 1)) {
+            c.admin_key_count = (pb_size_t)(slot + 1);
+        }
+    } else if (c.admin_key_count == (pb_size_t)(slot + 1)) {
+        while (c.admin_key_count > 0 &&
+               c.admin_key[c.admin_key_count - 1].size == 0) {
+            c.admin_key_count--;
+        }
+    }
+
+    return sendSecurityConfig(dest, c);
+}
+
+bool SimpleClient::adminSetIsManaged(bool is_managed, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_SecurityConfig c;
+    if (dest == whoami()) {
+        c = _securityConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.is_managed = is_managed;
+
+    return sendSecurityConfig(dest, c);
+}
+
+bool SimpleClient::adminSetAdminChannelEnabled(bool enabled, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Config_SecurityConfig c;
+    if (dest == whoami()) {
+        c = _securityConfig;
+    } else {
+        bzero(&c, sizeof(c));
+    }
+    c.admin_channel_enabled = enabled;
+
+    return sendSecurityConfig(dest, c);
+}
+
+bool SimpleClient::sendSecurityConfig(uint32_t dest, const meshtastic_Config_SecurityConfig &c)
+{
+    if (mt_admin_message_set_security_config(&_mtc, dest, &c) != 0) {
+        return false;
+    }
+    if (dest == whoami()) {
+        _securityConfig = c;
+    }
+    return true;
+}
+
+bool SimpleClient::adminSetChannelPsk(uint8_t index, const meshtastic_ChannelSettings_psk_t &psk,
+                                 uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Channel c;
+    bzero(&c, sizeof(c));
+    c.index = (int8_t) index;
+    if (dest == whoami()) {
+        map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.find(index);
+        if (it != _channels.end()) {
+            c = it->second;
+        }
+    }
+    c.has_settings = true;
+    c.settings.psk = psk;
+
+    return sendChannel(dest, c);
+}
+
+bool SimpleClient::adminSetChannelName(uint8_t index, const string &name, uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Channel c;
+    bzero(&c, sizeof(c));
+    c.index = (int8_t) index;
+    if (dest == whoami()) {
+        map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.find(index);
+        if (it != _channels.end()) {
+            c = it->second;
+        }
+    }
+    c.has_settings = true;
+    strncpy(c.settings.name, name.c_str(), sizeof(c.settings.name) - 1);
+    c.settings.name[sizeof(c.settings.name) - 1] = '\0';
+
+    return sendChannel(dest, c);
+}
+
+bool SimpleClient::adminSetChannelUplinkEnabled(uint8_t index, bool uplink_enabled,
+                                           uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Channel c;
+    bzero(&c, sizeof(c));
+    c.index = (int8_t) index;
+    if (dest == whoami()) {
+        map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.find(index);
+        if (it != _channels.end()) {
+            c = it->second;
+        }
+    }
+    c.has_settings = true;
+    c.settings.uplink_enabled = uplink_enabled;
+
+    return sendChannel(dest, c);
+}
+
+bool SimpleClient::adminSetChannelDownlinkEnabled(uint8_t index, bool downlink_enabled,
+                                             uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Channel c;
+    bzero(&c, sizeof(c));
+    c.index = (int8_t) index;
+    if (dest == whoami()) {
+        map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.find(index);
+        if (it != _channels.end()) {
+            c = it->second;
+        }
+    }
+    c.has_settings = true;
+    c.settings.downlink_enabled = downlink_enabled;
+
+    return sendChannel(dest, c);
+}
+
+bool SimpleClient::adminSetChannelRole(uint8_t index, meshtastic_Channel_Role role,
+                                  uint32_t dest)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    meshtastic_Channel c;
+    bzero(&c, sizeof(c));
+    c.index = (int8_t) index;
+    if (dest == whoami()) {
+        map<uint8_t, meshtastic_Channel>::const_iterator it = _channels.find(index);
+        if (it != _channels.end()) {
+            c = it->second;
+        }
+    }
+    c.role = role;
+
+    return sendChannel(dest, c);
+}
+
+bool SimpleClient::sendChannel(uint32_t dest, const meshtastic_Channel &c)
+{
+    if (mt_admin_message_set_channel(&_mtc, dest, &c) != 0) {
+        return false;
+    }
+    if (dest == whoami()) {
+        _channels[(uint8_t) c.index] = c;
+    }
+    return true;
+}
+
+bool SimpleClient::sendAdminMessage(const meshtastic_AdminMessage &msg,
+                                    uint32_t dest, bool want_response)
+{
+    lock_guard<recursive_mutex> lock(_mutex);
+
+    if (dest == 0) {
+        dest = whoami();
+    }
+
+    return (mt_send_admin_message(&_mtc, dest, &msg, want_response) == 0);
+}
+
+bool SimpleClient::getChannelRequest(uint8_t index, uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_get_channel_request_tag;
+    msg.get_channel_request = (uint32_t) index + 1;
+
+    return sendAdminMessage(msg, dest, true);
+}
+
+bool SimpleClient::getOwnerRequest(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_get_owner_request_tag;
+    msg.get_owner_request = true;
+
+    return sendAdminMessage(msg, dest, true);
+}
+
+bool SimpleClient::getConfigRequest(meshtastic_AdminMessage_ConfigType type,
+                                    uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_get_config_request_tag;
+    msg.get_config_request = type;
+
+    return sendAdminMessage(msg, dest, true);
+}
+
+bool SimpleClient::getDeviceMetadataRequest(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant =
+        meshtastic_AdminMessage_get_device_metadata_request_tag;
+    msg.get_device_metadata_request = true;
+
+    return sendAdminMessage(msg, dest, true);
+}
+
+bool SimpleClient::enterDfuMode(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant =
+        meshtastic_AdminMessage_enter_dfu_mode_request_tag;
+    msg.enter_dfu_mode_request = true;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::adminSetTime(uint32_t seconds, uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    if (seconds == 0) {
+        seconds = (uint32_t) time(NULL);
+    }
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_set_time_only_tag;
+    msg.set_time_only = seconds;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::beginEditSettings(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_begin_edit_settings_tag;
+    msg.begin_edit_settings = true;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::commitEditSettings(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_commit_edit_settings_tag;
+    msg.commit_edit_settings = true;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::factoryResetDevice(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_factory_reset_device_tag;
+    msg.factory_reset_device = 1;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::rebootOta(uint32_t seconds, uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_reboot_ota_seconds_tag;
+    msg.reboot_ota_seconds = (int32_t) seconds;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::adminMessageReboot(unsigned int seconds, uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_reboot_seconds_tag;
+    msg.reboot_seconds = (int32_t) seconds;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::shutdown(uint32_t seconds, uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_shutdown_seconds_tag;
+    msg.shutdown_seconds = (int32_t) seconds;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::factoryResetConfig(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_factory_reset_config_tag;
+    msg.factory_reset_config = 1;
+
+    return sendAdminMessage(msg, dest, false);
+}
+
+bool SimpleClient::resetNodeDb(uint32_t dest)
+{
+    meshtastic_AdminMessage msg;
+
+    bzero(&msg, sizeof(msg));
+    msg.which_payload_variant = meshtastic_AdminMessage_nodedb_reset_tag;
+    msg.nodedb_reset = 1;
+
+    return sendAdminMessage(msg, dest, false);
 }
 
 void SimpleClient::gotConfig(const meshtastic_Config &config)
@@ -999,30 +1687,6 @@ void SimpleClient::gotModuleConfigDetectionSensor(const meshtastic_ModuleConfig_
 void SimpleClient::gotModuleConfigPaxcounter(const meshtastic_ModuleConfig_PaxcounterConfig &c)
 {
     _modPaxcounter = c;
-}
-
-void SimpleClient::syncHostClock(uint32_t epoch_seconds)
-{
-    if (epoch_seconds < 1700000000U) {
-        return;
-    }
-
-    time_t now = time(NULL);
-    if ((now < 1700000000U) || ((time_t) epoch_seconds > now && ((time_t) epoch_seconds - now) >= 60)) {
-        time_t delta = (time_t) epoch_seconds - now;
-        struct timeval tv;
-        tv.tv_sec = (time_t) epoch_seconds;
-        tv.tv_usec = 0;
-        settimeofday(&tv, NULL);
-        _since += delta;
-        _mtc.last_packet_ts = epoch_seconds;
-        _mtc.last_byte_ts = epoch_seconds;
-    }
-    if (_deviceConfig.tzdef[0] != '\0') {
-        setenv("TZ", _deviceConfig.tzdef, 1);
-        tzset();
-    }
-    _isClockSynced = true;
 }
 
 void SimpleClient::updateNodeFromPacket(const meshtastic_MeshPacket &packet)

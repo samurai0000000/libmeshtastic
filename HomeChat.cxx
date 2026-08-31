@@ -713,8 +713,8 @@ void HomeChat::handleTimeBroadcast(const meshtastic_MeshPacket &packet,
 
     if (_client != NULL) {
         _client->syncHostClock((uint32_t) epoch);
-        _client->setTime((uint32_t) epoch);
-        _client->setTimezone(tz);
+        _client->adminSetTime((uint32_t) epoch);
+        _client->adminSetTimezone(tz);
     }
 }
 

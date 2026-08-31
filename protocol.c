@@ -108,9 +108,9 @@ done:
     return ret;
 }
 
-static int mt_send_admin_message(struct mt_client *mtc, uint32_t dest,
-                                 const meshtastic_AdminMessage *admin_message,
-                                 bool want_response)
+int mt_send_admin_message(struct mt_client *mtc, uint32_t dest,
+                          const meshtastic_AdminMessage *admin_message,
+                          bool want_response)
 {
     int ret = 0;
     meshtastic_ToRadio to_radio;

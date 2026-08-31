@@ -141,7 +141,6 @@ public:
 
     bool textMessage(uint32_t dest, uint8_t channel, const string &message,
                      unsigned int hop_start = 3, bool want_ack = false);
-    bool adminMessageReboot(unsigned int seconds = 0);
 
     struct NodeFilterRange {
         class Iterator {
@@ -180,8 +179,6 @@ public:
 
     NodeFilterRange getLastHeardNodes(uint32_t seconds = 0) const;
 
-    bool commitEditSettings(void);
-
     bool purgeNode(uint32_t nodeId);
     bool purgeNode(const string &shortName);
     virtual bool purgeOldNodes(void);
@@ -201,9 +198,73 @@ public:
         return _robotChannel;
     }
 
-    bool setTime(uint32_t seconds = 0, uint32_t dest = 0);
-    bool setTimezone(const string &tzdef, uint32_t dest = 0);
     virtual void syncHostClock(uint32_t epoch_seconds);
+
+    bool adminSetUsePreset(bool use_preset, uint32_t dest = 0);
+    bool adminSetModemPreset(meshtastic_Config_LoRaConfig_ModemPreset preset,
+                             uint32_t dest = 0);
+    bool adminSetRegion(meshtastic_Config_LoRaConfig_RegionCode region,
+                        uint32_t dest = 0);
+    bool adminSetHopLimit(uint32_t hop_limit, uint32_t dest = 0);
+    bool adminSetTxEnabled(bool tx_enabled, uint32_t dest = 0);
+    bool adminSetTxPower(int8_t tx_power, uint32_t dest = 0);
+    bool adminSetChannelNum(uint16_t channel_num, uint32_t dest = 0);
+    bool adminSetIgnoreMqtt(bool ignore_mqtt, uint32_t dest = 0);
+
+    bool adminSetRole(meshtastic_Config_DeviceConfig_Role role, uint32_t dest = 0);
+    bool adminSetRebroadcastMode(meshtastic_Config_DeviceConfig_RebroadcastMode mode,
+                                 uint32_t dest = 0);
+    bool adminSetNodeInfoBroadcastSecs(uint32_t seconds, uint32_t dest = 0);
+    bool adminSetTimezone(const string &tzdef, uint32_t dest = 0);
+
+    bool adminSetPositionBroadcastSecs(uint32_t seconds, uint32_t dest = 0);
+
+    bool adminSetPublicKey(const meshtastic_Config_SecurityConfig_public_key_t &key,
+                           uint32_t dest = 0);
+    bool adminSetPrivateKey(const meshtastic_Config_SecurityConfig_private_key_t &key,
+                            uint32_t dest = 0);
+    bool adminSetAdminKey(uint8_t slot,
+                          const meshtastic_Config_SecurityConfig_admin_key_t &key,
+                          uint32_t dest = 0);
+    bool adminSetIsManaged(bool is_managed, uint32_t dest = 0);
+    bool adminSetAdminChannelEnabled(bool enabled, uint32_t dest = 0);
+
+    bool adminSetChannelPsk(uint8_t index, const meshtastic_ChannelSettings_psk_t &psk,
+                            uint32_t dest = 0);
+    bool adminSetChannelName(uint8_t index, const string &name, uint32_t dest = 0);
+    bool adminSetChannelUplinkEnabled(uint8_t index, bool uplink_enabled,
+                                      uint32_t dest = 0);
+    bool adminSetChannelDownlinkEnabled(uint8_t index, bool downlink_enabled,
+                                        uint32_t dest = 0);
+    bool adminSetChannelRole(uint8_t index, meshtastic_Channel_Role role,
+                             uint32_t dest = 0);
+
+    bool sendAdminMessage(const meshtastic_AdminMessage &msg,
+                          uint32_t dest = 0, bool want_response = false);
+
+    bool getChannelRequest(uint8_t index, uint32_t dest = 0);
+    bool getOwnerRequest(uint32_t dest = 0);
+    bool getConfigRequest(meshtastic_AdminMessage_ConfigType type,
+                          uint32_t dest = 0);
+    bool getDeviceMetadataRequest(uint32_t dest = 0);
+    bool enterDfuMode(uint32_t dest = 0);
+    bool adminSetTime(uint32_t seconds = 0, uint32_t dest = 0);
+    bool beginEditSettings(uint32_t dest = 0);
+    bool commitEditSettings(uint32_t dest = 0);
+    bool factoryResetDevice(uint32_t dest = 0);
+    bool rebootOta(uint32_t seconds = 0, uint32_t dest = 0);
+    bool adminMessageReboot(unsigned int seconds = 0, uint32_t dest = 0);
+    bool shutdown(uint32_t seconds = 0, uint32_t dest = 0);
+    bool factoryResetConfig(uint32_t dest = 0);
+    bool resetNodeDb(uint32_t dest = 0);
+
+private:
+
+    bool sendLoraConfig(uint32_t dest, const meshtastic_Config_LoRaConfig &c);
+    bool sendDeviceConfig(uint32_t dest, const meshtastic_Config_DeviceConfig &c);
+    bool sendPositionConfig(uint32_t dest, const meshtastic_Config_PositionConfig &c);
+    bool sendSecurityConfig(uint32_t dest, const meshtastic_Config_SecurityConfig &c);
+    bool sendChannel(uint32_t dest, const meshtastic_Channel &c);
 
 public:
 
