@@ -102,7 +102,6 @@ void SimpleClient::clear(void)
     _hostMetrics.clear();
     _firmwareVersion.clear();
     _robotChannel = -1;
-    _lastHourlyTask = 0;
 }
 
 uint32_t SimpleClient::whoami(void) const
@@ -1524,14 +1523,16 @@ void SimpleClient::houseKeeping(void)
 {
     purgeOldNodes();
 
-    time_t now = time(NULL);
-    if (_lastHourlyTask == 0) {
-        _lastHourlyTask = now;
-    } else if (now < _lastHourlyTask) {
-        _lastHourlyTask = now;
-    } else if ((now - _lastHourlyTask) >= 3600) {
+    uint32_t uptime = getUptime();
+    uint32_t last;
+    {
+        lock_guard<recursive_mutex> lock(_mutex);
+        last = (uint32_t) _lastHourlyTask;
+    }
+    if (uptime >= last && (uptime - last) >= 3600) {
         hourlyTask();
-        _lastHourlyTask = now;
+        lock_guard<recursive_mutex> lock(_mutex);
+        _lastHourlyTask = (time_t) getUptime();
     }
 }
 
@@ -1544,7 +1545,7 @@ void SimpleClient::hourlyTask(void)
 
     stringstream ss;
     ss << fixed << setprecision(2);
-    ss << "status";
+    ss << "status:";
 
     map<uint32_t, meshtastic_DeviceMetrics>::const_iterator dev =
         _deviceMetrics.find(whoami());

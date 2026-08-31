@@ -545,7 +545,7 @@ protected:
 
     shared_ptr<BaseNvm> _nvm;
     int _robotChannel;
-    time_t _lastHourlyTask;
+    time_t _lastHourlyTask;  /* getUptime() of last hourlyTask() invocation */
 
 public:
 
