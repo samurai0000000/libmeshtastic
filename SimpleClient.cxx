@@ -1837,11 +1837,7 @@ void SimpleClient::gotConfigCompleteId(uint32_t id)
 
     int robotChan = getRobotChannel();
     if (robotChan >= 0 && !_bootAnnounced) {
-        string announcement = lookupLongName(whoami(), true);
-        if (announcement.empty()) {
-            announcement = whoamiString();
-        }
-        announcement += " is up";
+        string announcement = "boot-up: " + lookupShortName(whoami(), true);
         if (textMessage(0xffffffffU, (uint8_t) robotChan, announcement)) {
             _bootAnnounced = true;
         }
@@ -2172,11 +2168,7 @@ void SimpleClient::setupAgent(void)
 resolved:
 
     if (_robotChannel >= 0 && _isConnected && !_bootAnnounced) {
-        string announcement = lookupLongName(whoami(), true);
-        if (announcement.empty()) {
-            announcement = whoamiString();
-        }
-        announcement += " is up";
+        string announcement = "boot-up: " + lookupShortName(whoami(), true);
         if (textMessage(0xffffffffU, (uint8_t) _robotChannel, announcement)) {
             _bootAnnounced = true;
         }
