@@ -5,6 +5,7 @@
  */
 
 #include <stdlib.h>
+#include <algorithm>
 #include <SimpleShell.hxx>
 
 SimpleShell::SimpleShell(shared_ptr<SimpleClient> client)
@@ -1083,10 +1084,23 @@ int SimpleShell::last(int argc, char **argv)
     time_t now = time(NULL);
     unsigned int count = 0;
 
-    this->printf("%-10s  %-12s  %-12s  %s\n", "ID", "ShortName", "LastHeard", "SNR");
-    this->printf("%-10s  %-12s  %-12s  %s\n", "----------", "------------", "------------", "-------");
+    this->printf("%-10s  %-12s  %-16s  %s\n", "ID", "ShortName", "LastHeard", "SNR");
+    this->printf("%-10s  %-12s  %-16s  %s\n", "----------", "------------", "----------------", "-------");
 
+    vector<meshtastic_NodeInfo> nodes;
     for (const meshtastic_NodeInfo &node : _client->getLastHeardNodes(seconds)) {
+        nodes.push_back(node);
+    }
+
+    std::sort(nodes.begin(), nodes.end(),
+              [](const meshtastic_NodeInfo &a, const meshtastic_NodeInfo &b) {
+                  if (a.last_heard != b.last_heard) {
+                      return a.last_heard < b.last_heard;
+                  }
+                  return a.num < b.num;
+              });
+
+    for (const meshtastic_NodeInfo &node : nodes) {
         string idStr = _client->idString(node.num);
         string shortName = (node.has_user && (node.user.short_name[0] != '\0')) ?
             _client->lookupShortName(node.num, true) : "****";
@@ -1097,7 +1111,20 @@ int SimpleShell::last(int argc, char **argv)
             if (now >= (time_t) node.last_heard) {
                 ago = (uint32_t)(now - (time_t) node.last_heard);
             }
-            snprintf(agoBuf, sizeof(agoBuf), "%us ago", (unsigned int) ago);
+            uint32_t d = ago / 86400;
+            uint32_t rem = ago % 86400;
+            uint32_t h = rem / 3600;
+            rem = rem % 3600;
+            uint32_t m = rem / 60;
+            uint32_t s = rem % 60;
+
+            if (d > 0) {
+                snprintf(agoBuf, sizeof(agoBuf), "%ud %02u:%02u:%02u ago",
+                         (unsigned int) d, (unsigned int) h, (unsigned int) m, (unsigned int) s);
+            } else {
+                snprintf(agoBuf, sizeof(agoBuf), "%02u:%02u:%02u ago",
+                         (unsigned int) h, (unsigned int) m, (unsigned int) s);
+            }
         } else {
             snprintf(agoBuf, sizeof(agoBuf), "N/A");
         }
@@ -1109,7 +1136,7 @@ int SimpleShell::last(int argc, char **argv)
             snprintf(snrBuf, sizeof(snrBuf), "N/A");
         }
 
-        this->printf("%-10s  %-12s  %-12s  %s\n", idStr.c_str(), shortName.c_str(), agoBuf, snrBuf);
+        this->printf("%-10s  %-12s  %-16s  %s\n", idStr.c_str(), shortName.c_str(), agoBuf, snrBuf);
         count++;
     }
 

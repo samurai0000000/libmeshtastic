@@ -179,6 +179,7 @@ public:
 
     NodeFilterRange getLastHeardNodes(uint32_t seconds = 0) const;
 
+    virtual bool isProtectedNode(uint32_t nodeId) const;
     bool purgeNode(uint32_t nodeId);
     bool purgeNode(const string &shortName);
     virtual bool purgeOldNodes(void);

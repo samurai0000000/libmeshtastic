@@ -623,8 +623,34 @@ SimpleClient::NodeFilterRange SimpleClient::getLastHeardNodes(uint32_t seconds) 
     return NodeFilterRange(_nodeInfos, seconds, time(NULL));
 }
 
+bool SimpleClient::isProtectedNode(uint32_t nodeId) const
+{
+    if (nodeId == 0 || nodeId == 0xffffffffU || nodeId == whoami()) {
+        return true;
+    }
+
+    if (_nvm != NULL) {
+        for (const auto &admin : _nvm->nvmAdmins()) {
+            if (admin.node_num == nodeId) {
+                return true;
+            }
+        }
+        for (const auto &mate : _nvm->nvmMates()) {
+            if (mate.node_num == nodeId) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 bool SimpleClient::purgeNode(uint32_t nodeId)
 {
+    if (isProtectedNode(nodeId)) {
+        return false;
+    }
+
     bool result = false;
     lock_guard<recursive_mutex> lock(_mutex);
 
@@ -710,7 +736,7 @@ bool SimpleClient::purgeOldNodes(void)
     for (map<uint32_t, meshtastic_NodeInfo>::const_iterator it = _nodeInfos.begin();
          it != _nodeInfos.end(); it++) {
         uint32_t nodeId = it->first;
-        if (nodeId == 0 || nodeId == 0xffffffffU || nodeId == whoami()) {
+        if (isProtectedNode(nodeId)) {
             continue;
         }
 
@@ -718,9 +744,7 @@ bool SimpleClient::purgeOldNodes(void)
         uint32_t lastHeard = info.last_heard;
         bool qualifies = false;
 
-        if (lastHeard == 0) {
-            qualifies = true;
-        } else if (now >= (time_t) lastHeard) {
+        if (lastHeard > 0 && now >= (time_t) lastHeard) {
             if ((uint32_t)(now - (time_t) lastHeard) > ONE_WEEK_SECONDS) {
                 qualifies = true;
             }
