@@ -782,7 +782,8 @@ string HomeChat::handleZeroHops(uint32_t node_num, string &message)
     (void)(node_num);
     (void)(message);
 
-    reply = "zero-hop-neighbors:";
+    bool first = true;
+    reply = "zerohop: nodes=";
     for (it = _client->nodeInfos().begin();
          it != _client->nodeInfos().end();
          it++) {
@@ -794,7 +795,10 @@ string HomeChat::handleZeroHops(uint32_t node_num, string &message)
             continue;
         }
 
-        reply += "\n";
+        if (!first) {
+            reply += ",";
+        }
+        first = false;
         reply += _client->getDisplayName(it->second.num);
     }
 
@@ -810,7 +814,7 @@ string HomeChat::handleNodes(uint32_t node_num, string &message)
     (void)(node_num);
     (void)(message);
 
-    reply = "nodes seen: ";
+    reply = "nodes: count=";
     reply += to_string(_client->nodeInfos().size());
 
     for (hops = 0; hops < 15; hops++) {
@@ -828,8 +832,7 @@ string HomeChat::handleNodes(uint32_t node_num, string &message)
         }
 
         if (count > 0) {
-            reply += "\n";
-            reply += "hop";
+            reply += " hop";
             reply += to_string(hops);
             reply += "=";
             reply += to_string(count);
@@ -918,9 +921,9 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
             }
 
             if (result == true) {
-                ss << "added " << tokens[2];
+                ss << "authchan: added=" << tokens[2];
             } else {
-                ss << "add " << tokens[2] << " failed!";
+                ss << "authchan: add_failed=" << tokens[2];
             }
         } else if ((tokens.size() == 3) && (tokens[1] == "del")) {
             if (isAdmin == false) {
@@ -936,9 +939,9 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
             }
 
             if (result == true) {
-                ss << "deleted " << tokens[2];
+                ss << "authchan: deleted=" << tokens[2];
             } else {
-                ss << "delete " << tokens[2] << " failed!";
+                ss << "authchan: del_failed=" << tokens[2];
             }
         } else if ((tokens.size() >= 3) && (tokens[1] == "set")) {
             if (isAdmin == false) {
@@ -958,9 +961,9 @@ string HomeChat::handleAuthchan(uint32_t node_num, string &message)
             result = _nvm->saveNvm();
             syncFromNvm();
 
-            ss << "set " << pass << " authchan entries";
+            ss << "authchan: set=" << pass;
             if (fail > 0) {
-                ss << " (" << fail << " entries failed to set!)";
+                ss << " fail=" << fail;
             }
         } else {
             ss << "syntax error!";
@@ -1028,9 +1031,9 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
             }
 
             if (result == true) {
-                ss << "added " << tokens[2];
+                ss << "admin: added=" << tokens[2];
             } else {
-                ss << "add " << tokens[2] << " failed!";
+                ss << "admin: add_failed=" << tokens[2];
             }
         } else if ((tokens.size() == 3) && (tokens[1] == "del")) {
             if (isAdmin == false) {
@@ -1046,9 +1049,9 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
             }
 
             if (result == true) {
-                ss << "deleted " << tokens[2];
+                ss << "admin: deleted=" << tokens[2];
             } else {
-                ss << "delete " << tokens[2] << " failed!";
+                ss << "admin: del_failed=" << tokens[2];
             }
         } else if ((tokens.size() >= 3) && (tokens[1] == "set")) {
             if (isAdmin == false) {
@@ -1068,9 +1071,9 @@ string HomeChat::handleAdmin(uint32_t node_num, string &message)
             result = _nvm->saveNvm();
             syncFromNvm();
 
-            ss << "set " << pass << " admin entries";
+            ss << "admin: set=" << pass;
             if (fail > 0) {
-                ss << " (" << fail << " entries failed to set!)";
+                ss << " fail=" << fail;
             }
         } else {
             ss << "syntax error!";
@@ -1138,9 +1141,9 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
             }
 
             if (result == true) {
-                ss << "added " << tokens[2];
+                ss << "mate: added=" << tokens[2];
             } else {
-                ss << "add " << tokens[2] << " failed!";
+                ss << "mate: add_failed=" << tokens[2];
             }
         } else if ((tokens.size() == 3) && (tokens[1] == "del")) {
             if (isAdmin == false) {
@@ -1156,9 +1159,9 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
             }
 
             if (result == true) {
-                ss << "deleted " << tokens[2];
+                ss << "mate: deleted=" << tokens[2];
             } else {
-                ss << "delete " << tokens[2] << " failed!";
+                ss << "mate: del_failed=" << tokens[2];
             }
         } else if ((tokens.size() >= 3) && (tokens[1] == "set")) {
             if (isAdmin == false) {
@@ -1178,9 +1181,9 @@ string HomeChat::handleMate(uint32_t node_num, string &message)
             result = _nvm->saveNvm();
             syncFromNvm();
 
-            ss << "set " << pass << " mate entries";
+            ss << "mate: set=" << pass;
             if (fail > 0) {
-                ss << " (" << fail << " entries failed to set!)";
+                ss << " fail=" << fail;
             }
         } else {
             ss << "syntax error!";
