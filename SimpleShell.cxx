@@ -1087,10 +1087,7 @@ int SimpleShell::last(int argc, char **argv)
     this->printf("%-10s  %-12s  %-16s  %s\n", "ID", "ShortName", "LastHeard", "SNR");
     this->printf("%-10s  %-12s  %-16s  %s\n", "----------", "------------", "----------------", "-------");
 
-    vector<meshtastic_NodeInfo> nodes;
-    for (const meshtastic_NodeInfo &node : _client->getLastHeardNodes(seconds)) {
-        nodes.push_back(node);
-    }
+    vector<meshtastic_NodeInfo> nodes = _client->getLastHeardNodes(seconds);
 
     std::sort(nodes.begin(), nodes.end(),
               [](const meshtastic_NodeInfo &a, const meshtastic_NodeInfo &b) {

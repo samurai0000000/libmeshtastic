@@ -530,97 +530,32 @@ bool SimpleClient::textMessage(uint32_t dest, uint8_t channel,
     return result;
 }
 
-SimpleClient::NodeFilterRange::Iterator::Iterator(
-    map<uint32_t, meshtastic_NodeInfo>::const_iterator it,
-    map<uint32_t, meshtastic_NodeInfo>::const_iterator end,
-    uint32_t seconds, time_t now)
-    : _it(it), _end(end), _seconds(seconds), _now(now)
+vector<meshtastic_NodeInfo> SimpleClient::getLastHeardNodes(uint32_t seconds) const
 {
-    advanceToNextValid();
-}
+    lock_guard<recursive_mutex> lock(_mutex);
+    vector<meshtastic_NodeInfo> nodes;
+    time_t now = time(NULL);
 
-void SimpleClient::NodeFilterRange::Iterator::advanceToNextValid(void)
-{
-    while (_it != _end) {
-        if (_seconds == 0) {
-            break;
-        }
-
-        const meshtastic_NodeInfo &info = _it->second;
-        if (info.last_heard > 0) {
+    for (map<uint32_t, meshtastic_NodeInfo>::const_iterator it = _nodeInfos.begin();
+         it != _nodeInfos.end(); it++) {
+        const meshtastic_NodeInfo &info = it->second;
+        if (seconds == 0) {
+            nodes.push_back(info);
+        } else if (info.last_heard > 0) {
             uint32_t diff;
-            if (_now >= (time_t) info.last_heard) {
-                diff = (uint32_t)(_now - (time_t) info.last_heard);
+            if (now >= (time_t) info.last_heard) {
+                diff = (uint32_t)(now - (time_t) info.last_heard);
             } else {
-                diff = (uint32_t)((time_t) info.last_heard - _now);
+                diff = (uint32_t)((time_t) info.last_heard - now);
             }
 
-            if (diff <= _seconds) {
-                break;
+            if (diff <= seconds) {
+                nodes.push_back(info);
             }
         }
-        ++_it;
-    }
-}
-
-const meshtastic_NodeInfo &SimpleClient::NodeFilterRange::Iterator::operator*(void) const
-{
-    return _it->second;
-}
-
-const meshtastic_NodeInfo *SimpleClient::NodeFilterRange::Iterator::operator->(void) const
-{
-    return &_it->second;
-}
-
-SimpleClient::NodeFilterRange::Iterator &SimpleClient::NodeFilterRange::Iterator::operator++(void)
-{
-    if (_it != _end) {
-        ++_it;
-        advanceToNextValid();
     }
 
-    return *this;
-}
-
-SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::Iterator::operator++(int)
-{
-    Iterator tmp = *this;
-    ++(*this);
-    return tmp;
-}
-
-bool SimpleClient::NodeFilterRange::Iterator::operator==(const Iterator &other) const
-{
-    return _it == other._it;
-}
-
-bool SimpleClient::NodeFilterRange::Iterator::operator!=(const Iterator &other) const
-{
-    return _it != other._it;
-}
-
-SimpleClient::NodeFilterRange::NodeFilterRange(
-    const map<uint32_t, meshtastic_NodeInfo> &nodes,
-    uint32_t seconds, time_t now)
-    : _nodes(nodes), _seconds(seconds), _now(now)
-{
-
-}
-
-SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::begin(void) const
-{
-    return Iterator(_nodes.begin(), _nodes.end(), _seconds, _now);
-}
-
-SimpleClient::NodeFilterRange::Iterator SimpleClient::NodeFilterRange::end(void) const
-{
-    return Iterator(_nodes.end(), _nodes.end(), _seconds, _now);
-}
-
-SimpleClient::NodeFilterRange SimpleClient::getLastHeardNodes(uint32_t seconds) const
-{
-    return NodeFilterRange(_nodeInfos, seconds, time(NULL));
+    return nodes;
 }
 
 bool SimpleClient::isProtectedNode(uint32_t nodeId) const
