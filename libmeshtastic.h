@@ -67,6 +67,7 @@ struct mt_client
     uint32_t packets_tx;
     uint32_t last_packet_ts;
     uint32_t last_byte_ts;
+    uint32_t want_config_id;
 };
 
 #if defined(LIB_PICO_PLATFORM)
@@ -323,6 +324,7 @@ extern int mt_send_remote_hardware_req(struct mt_client *mtc,
                                        unsigned int hop_start, bool want_ack);
 
 extern time_t mt_impl_now(void);
+extern uint32_t mt_impl_rand(void);
 
 EXTERN_C_END
 

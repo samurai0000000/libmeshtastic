@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
+#include <esp_random.h>
 #include <libmeshtastic.h>
 #include <serial.h>
 
@@ -203,6 +204,17 @@ done:
 time_t mt_impl_now(void)
 {
     return time(NULL);
+}
+
+uint32_t mt_impl_rand(void)
+{
+    uint32_t v = esp_random();
+
+    if (v == 0) {
+        v = 1;
+    }
+
+    return v;
 }
 
 /*

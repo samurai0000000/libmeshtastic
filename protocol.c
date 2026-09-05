@@ -20,34 +20,16 @@
 
 #define PB_BUF_SIZE 512
 
-static void mt_seed_rand(void)
-{
-    static int seeded = 0;
-
-    if (!seeded) {
-        srand((unsigned int) time(NULL));
-        seeded = 1;
-    }
-}
-
 static uint32_t mt_next_packet_id(void)
 {
     static uint32_t seq = 0;
     uint32_t id;
+    uint32_t random_part;
 
-    mt_seed_rand();
-
-    if (seq == 0) {
-        seq = ((uint32_t) time(NULL) << 8) ^ ((uint32_t) rand() << 1);
-        if (seq == 0) {
-            seq = 1;
-        }
-    }
-
-    seq++;
-    id = seq & 0x7fffffffU;
+    seq = (seq + 1) & 0x3ffU;
+    random_part = (mt_impl_rand() & 0x3fffffU) << 10;
+    id = (seq | random_part) & 0x7fffffffU;
     if (id == 0) {
-        seq = 1;
         id = 1;
     }
 
@@ -345,8 +327,7 @@ int mt_send_want_config(struct mt_client *mtc)
 {
     int ret = 0;
     meshtastic_ToRadio to_radio;
-
-    mt_seed_rand();
+    uint32_t nonce;
 
     if (mtc == NULL) {
         errno = EINVAL;
@@ -354,11 +335,19 @@ int mt_send_want_config(struct mt_client *mtc)
         goto done;
     }
 
+    nonce = mt_impl_rand() & 0x7fffffffU;
+    if (nonce == 0) {
+        nonce = 1;
+    }
+
     memset(&to_radio, 0x0, sizeof(to_radio));
     to_radio.which_payload_variant = meshtastic_ToRadio_want_config_id_tag;
-    to_radio.want_config_id = rand() & 0x7fffffff;
+    to_radio.want_config_id = nonce;
 
     ret = mt_send_to_radio(mtc, &to_radio);
+    if (ret == 0) {
+        mtc->want_config_id = nonce;
+    }
 
 done:
 

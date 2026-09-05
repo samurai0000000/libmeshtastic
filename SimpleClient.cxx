@@ -1790,7 +1790,10 @@ void SimpleClient::gotChannel(const meshtastic_Channel &channel)
 
 void SimpleClient::gotConfigCompleteId(uint32_t id)
 {
-    (void)(id);
+    if (id == 0 || id != _mtc.want_config_id) {
+        return;
+    }
+
     _isConnected = true;
     setupAgent();
 

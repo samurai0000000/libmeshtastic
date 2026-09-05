@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <pico/rand.h>
 #include <pico-plat.h>
 #include <libmeshtastic.h>
 
@@ -202,6 +203,17 @@ done:
 time_t mt_impl_now(void)
 {
     return time(NULL);
+}
+
+uint32_t mt_impl_rand(void)
+{
+    uint32_t v = get_rand_32();
+
+    if (v == 0) {
+        v = 1;
+    }
+
+    return v;
 }
 
 /*

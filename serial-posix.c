@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <time.h>
 #include <libmeshtastic.h>
 
 int mt_serial_attach(struct mt_client *mtc, const char *device)
@@ -323,6 +324,32 @@ done:
 time_t mt_impl_now(void)
 {
     return time(NULL);
+}
+
+uint32_t mt_impl_rand(void)
+{
+    uint32_t v = 0;
+    int fd;
+    struct timespec ts;
+
+    fd = open("/dev/urandom", O_RDONLY);
+    if (fd >= 0) {
+        ssize_t n = read(fd, &v, sizeof(v));
+        close(fd);
+        if (n == (ssize_t) sizeof(v) && v != 0) {
+            return v;
+        }
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    v = (uint32_t) ts.tv_nsec ^ ((uint32_t) ts.tv_sec * 2654435761U);
+    v ^= (uint32_t) getpid() << 16;
+    v ^= (uint32_t) rand();
+    if (v == 0) {
+        v = 1;
+    }
+
+    return v;
 }
 
 /*
