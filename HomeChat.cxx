@@ -14,6 +14,7 @@
 #include <cstring>
 #include <algorithm>
 #include <functional>
+#include <stdexcept>
 #include <HomeChat.hxx>
 
 #ifndef DEBUG_CHATBOT
@@ -200,7 +201,18 @@ HomeChat::HomeChat(shared_ptr<SimpleClient> client)
 {
     setClient(client);
     _since = time(NULL);
+    _logIncoming = true;
     clearAuthchansAdminsMates();
+}
+
+void HomeChat::setLogIncoming(bool enable)
+{
+    _logIncoming = enable;
+}
+
+bool HomeChat::logIncoming(void) const
+{
+    return _logIncoming;
 }
 
 HomeChat::~HomeChat()
@@ -398,19 +410,23 @@ bool HomeChat::handleTextMessage(const meshtastic_MeshPacket &packet,
         directMessage = true;
         dest = packet.from;
         channel = packet.channel;
-        this->printf("%s:%c%s\n",
-                     _client->getDisplayName(packet.from).c_str(),
-                     message.find('\n') == string::npos ? ' ' : '\n',
-                     message.c_str());
+        if (_logIncoming) {
+            this->printf("%s:%c%s\n",
+                         _client->getDisplayName(packet.from).c_str(),
+                         message.find('\n') == string::npos ? ' ' : '\n',
+                         message.c_str());
+        }
     } else {
         channelMessage = true;
         dest = 0xffffffffU;
         channel = packet.channel;
-        this->printf("%s on #%s:%c%s\n",
-                     _client->getDisplayName(packet.from).c_str(),
-                     _client->getChannelName(packet.channel).c_str(),
-                     message.find('\n') == string::npos ? ' ' : '\n',
-                     message.c_str());
+        if (_logIncoming) {
+            this->printf("%s on #%s:%c%s\n",
+                         _client->getDisplayName(packet.from).c_str(),
+                         _client->getChannelName(packet.channel).c_str(),
+                         message.find('\n') == string::npos ? ' ' : '\n',
+                         message.c_str());
+        }
     }
 
     // get first word
@@ -692,9 +708,69 @@ string HomeChat::getLastMessageFrom(uint32_t node_num) const
 string HomeChat::handleRollcall(uint32_t node_num, string &message)
 {
     string reply;
+    string rest = message;
+    string target;
 
-    (void)(node_num);
-    (void)(message);
+    if (_client == NULL) {
+        return reply;
+    }
+
+    trimWhitespace(rest);
+    string lower = rest;
+    toLowercase(lower);
+    if (lower.rfind("rollcall", 0) == 0) {
+        rest = rest.substr(8);
+        trimWhitespace(rest);
+    }
+
+    size_t space = rest.find_first_of(" \t");
+    if (space == string::npos) {
+        target = rest;
+    } else {
+        target = rest.substr(0, space);
+    }
+    trimWhitespace(target);
+
+    string targetLower = target;
+    toLowercase(targetLower);
+
+    if (!target.empty() && targetLower != "all") {
+        uint32_t me = _client->whoami();
+        bool match = false;
+        string hex = targetLower;
+
+        if (!hex.empty() && hex[0] == '!') {
+            hex = hex.substr(1);
+        } else if (hex.rfind("0x", 0) == 0) {
+            hex = hex.substr(2);
+        }
+
+        if (!hex.empty() &&
+            hex.find_first_not_of("0123456789abcdef") == string::npos) {
+            try {
+                uint32_t id = static_cast<uint32_t>(std::stoul(hex, nullptr, 16));
+                if (id == me) {
+                    match = true;
+                }
+            } catch (const invalid_argument &) {
+            } catch (const out_of_range &) {
+            }
+        }
+
+        if (!match) {
+            string shortName = _client->lookupShortName(me);
+            string longName = _client->lookupLongName(me);
+            toLowercase(shortName);
+            toLowercase(longName);
+            if (targetLower == shortName || targetLower == longName) {
+                match = true;
+            }
+        }
+
+        if (!match) {
+            return reply;
+        }
+    }
 
     reply = _client->lookupLongName(node_num) + ", " +
         _client->lookupLongName(_client->whoami()) +

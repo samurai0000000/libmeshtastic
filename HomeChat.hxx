@@ -59,6 +59,9 @@ public:
     virtual bool handleTextMessage(const meshtastic_MeshPacket &packet,
                                    const string &message);
 
+    void setLogIncoming(bool enable);
+    bool logIncoming(void) const;
+
     static bool parseTimeBroadcast(const string &message,
                                    time_t &epoch_out,
                                    string &tz_out);
@@ -97,6 +100,7 @@ protected:
     shared_ptr<BaseNvm> _nvm;
 
     time_t _since;
+    bool _logIncoming;
     map<uint32_t, string> _lastMessageFrom;
     map<string, meshtastic_ChannelSettings_psk_t> _authchans;
     map<uint32_t, meshtastic_User_public_key_t> _admins;
