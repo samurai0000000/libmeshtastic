@@ -365,7 +365,7 @@ void MeshShell::run(void)
 
             _children.push_back(clientShell);
         } else {
-            char c;
+            uint8_t c;
 
             ret = read(_fd, &c, 1);
             if (ret == -1) {
@@ -379,7 +379,7 @@ void MeshShell::run(void)
             if (c == 0xff) {  // IAC received
                 static const uint8_t iac_do_tm[3] = { 0xff, 0xfd, 0x06};
                 static const uint8_t iac_will_tm[3] = { 0xff, 0xfb, 0x06};
-                char iac2;
+                uint8_t iac2;
 
                 ret = read(_fd, &iac2, 1);
                 if (ret == 1) {

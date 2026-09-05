@@ -55,7 +55,7 @@ int SimpleShell::process(void)
 {
     int ret = 0;
     int rx;
-    char c;
+    uint8_t c;
 
     while (this->rx_ready() > 0) {
         rx = this->rx_read((uint8_t *) &c, 1);
@@ -71,7 +71,7 @@ int SimpleShell::process(void)
         if (c == 0xff) {  // IAC received
             static const uint8_t iac_do_tm[3] = { 0xff, 0xfd, 0x06};
             static const uint8_t iac_will_tm[3] = { 0xff, 0xfb, 0x06};
-            char iac2;
+            uint8_t iac2;
 
             ret = this->rx_read((uint8_t *) &iac2, 1);
             if (ret == 1) {
