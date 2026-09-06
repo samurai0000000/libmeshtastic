@@ -42,38 +42,66 @@ HomeChat replies adhere to a concise lowercase `key=val` format suitable for low
 ### 3.1 Status & Diagnostics
 
 - **`rollcall`**
-  - Responds with node identity and status:
+  - Announces presence in prose, addressed to the asker. An optional
+    argument targets a single node, and nodes that do not match stay
+    silent:
     ```text
-    <shortName> here!
+    <asker long name>, <my long name> is at your service
     ```
+  - Robot firmwares override this with a machine-readable
+    `rollcall: app=<app> ver=<x.y.z> hw=<platform> caps=<list>`.
 - **`uptime`**
-  - Reports system and radio connection uptime:
+  - Reports host uptime only. The day field is omitted below 24 hours:
     ```text
-    uptime: host=<days>d <hh>:<mm>:<ss> client=<days>d <hh>:<mm>:<ss>
+    uptime: <hh>:<mm>:<ss>
+    uptime: <N>d <hh>:<mm>:<ss>
     ```
 - **`version`**
-  - Reports software/firmware version string:
+  - Reports the banner, version, Meshtastic firmware version where
+    known, build stamp, and copyright, one per line, with no `version:`
+    prefix. Replies `unknown!` when the client supplied none of them:
     ```text
-    version: <versionString>
+    <banner>
+    <version>
+    Meshtastic firmware: <firmwareVersion>
+    <built>
+    <copyright>
     ```
 - **`status`**
-  - Reports operational health and status summary (default: `status: operational`, extensible by subclasses).
+  - The base implementation returns an empty string, which suppresses
+    the reply entirely. Subclasses override it; `meshroof` and
+    `meshpump` answer with their own `status: <key>=<value> ...` lines.
 - **`env`**
-  - Reports environmental telemetry (temperature, relative humidity, pressure, gas resistance, IAQ).
-- **`zerohops`**
-  - Lists directly heard nodes (0 hops away) with SNR and RSSI:
+  - Reports environmental telemetry from the client's cached metrics.
+    Each field is omitted when the sensor is absent, and the whole
+    reply is empty when no metrics are cached at all:
     ```text
-    zerohops: count=<N> !<id1>=<snr>dB ...
+    env: temp=<c> rh=<pct> bp=<hpa>
+    ```
+  - Subclasses append their own onboard temperature, such as
+    `temp_chip=` on `meshroof` or `temp_board=` on `meshroom`. Because
+    the base part can be empty, an override's field may arrive with no
+    `env:` prefix in front of it.
+- **`zerohops`**
+  - Lists the display names of nodes heard directly, comma separated.
+    The reply verb is singular and carries no count, SNR, or RSSI:
+    ```text
+    zerohop: nodes=<name>,<name>,...
     ```
 - **`nodes`**
-  - Summarizes the total known nodes in the device database:
+  - Reports the size of the node database followed by a per-hop
+    breakdown, omitting hop counts that are zero:
     ```text
-    nodes: total=<N>
+    nodes: count=<N> hop0=<N> hop1=<N> ...
     ```
 - **`meshstats`**
-  - Reports LoRa mesh statistics (packets received, transmitted, duplicates, bad packets):
+  - Reports message counters in prose across multiple lines, with
+    channel utilization appended when device metrics are available:
     ```text
-    meshstats: rx=<N> tx=<N> dup=<N> bad=<N>
+    direct messages (sent/recv): <N>/<N>
+    channel messages (sent/recv): <N>/<N>
+    channel_utilization: <pct>%
+    air_util_tx: <pct>%
     ```
 - **`wcfg`**
   - Reports network / WiFi configuration status where supported.
