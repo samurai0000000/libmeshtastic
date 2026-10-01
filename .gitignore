@@ -2,3 +2,4 @@ build/
 .cursor
 .agents
 plan/
+.claude

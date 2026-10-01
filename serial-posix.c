@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <time.h>
 #include <libmeshtastic.h>
@@ -44,6 +45,13 @@ int mt_serial_attach(struct mt_client *mtc, const char *device)
     mtc->fd = open(mtc->device, O_RDWR | O_NOCTTY);
     if (mtc->fd == -1) {
         fprintf(stderr, "%s: %s\n", mtc->device, strerror(errno));
+        ret = -1;
+        goto done;
+    }
+
+    if (ioctl(mtc->fd, TIOCEXCL) != 0) {
+        fprintf(stderr, "%s: serial port in exclusive use: %s\n",
+                mtc->device, strerror(errno));
         ret = -1;
         goto done;
     }
@@ -99,6 +107,7 @@ int mt_serial_detach(struct mt_client *mtc)
     }
 
     if (mtc->fd >= 0) {
+        ioctl(mtc->fd, TIOCNXCL);
         close(mtc->fd);
         mtc->fd = -1;
     }

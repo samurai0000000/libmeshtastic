@@ -49,6 +49,7 @@ protected:
 
     virtual shared_ptr<MeshShell> newInstance(void);
     virtual int printf(const char *format, ...);
+    virtual int vprintf(const char *format, va_list ap);
     virtual int exit(int argc, char **argv);
     virtual int unknown_command(int argc, char **argv);
 
@@ -60,7 +61,6 @@ private:
     void run(void);
 
     static int ctx_vprintf(void *ctx, const char *format, va_list ap);
-    int vprintf(const char *format, va_list ap);
 
 private:
 
